@@ -2,10 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>BJJ 스타일 테스트</title>
 
-  <!-- ✅ OG/Twitter 썸네일 (원하면 이미지 URL 바꿔도 됨) -->
+  <!-- ✅ OG/Twitter 썸네일 -->
   <meta property="og:title" content="BJJ 스타일 테스트"/>
   <meta property="og:description" content="8문항으로 내 주짓수 스타일과 닮은 선수 + 스파이더차트"/>
   <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
@@ -21,7 +21,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Kakao SDK (선택: 카카오 전용 버튼 쓸 때만 키 넣으면 됨) -->
+  <!-- Kakao SDK (선택) -->
   <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 
   <style>
@@ -36,7 +36,7 @@
     const { useMemo, useState, useEffect, useRef } = React;
 
     /* =========================
-       0) 다국어 & 언어 감지
+       다국어 & 언어 감지
     ========================== */
     const STR = {
       ko: { title:"주짓수 플레이 스타일 테스트", subtitle:"8문항으로 닮은 선수와 스파이더차트를 확인하세요.",
@@ -68,7 +68,7 @@
     }
 
     /* =========================
-       1) 축/가중치(전문가 납득용)
+       축/가중치(전문가 납득)
     ========================== */
     const AXES = [
       { key:"control",     label:{ko:"컨트롤",      en:"Control",       ja:"コントロール"} },
@@ -83,8 +83,7 @@
     const WEIGHTS = { control:1.2, pressure:1.1, scramble:1.0, leglock:1.2, berimbolo:0.8, fundamental:1.0, wrestling:0.9, mental:1.0 };
 
     /* =========================
-       2) 선수 라인업 확장 (이미지 폴백 포함)
-          - 실제 사진이 막힐 때를 대비해 data:svg 폴백 포함
+       이미지 폴백
     ========================== */
     const PH = (name) =>
       `data:image/svg+xml;charset=UTF-8,` +
@@ -94,7 +93,6 @@
         <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='#6b7280' font-family='Arial, Helvetica, sans-serif'>${name}</text>
       </svg>`);
 
-    // SmartImage: 여러 소스 시도 + no-referrer + 마지막엔 placeholder
     function SmartImage({ srcs, alt, className }) {
       const arr = Array.isArray(srcs) ? srcs.filter(Boolean) : [srcs];
       const [idx, setIdx] = React.useState(0);
@@ -105,12 +103,17 @@
           alt={alt}
           referrerPolicy="no-referrer"
           className={className}
-          onError={() => { if (idx < arr.length - 1) setIdx(idx + 1); else if (curr.startsWith("data:") === false) setIdx(arr.length - 1); }}
+          onError={() => {
+            if (idx < arr.length - 1) setIdx(idx + 1);
+            else if (!curr.startsWith("data:")) setIdx(arr.length - 1);
+          }}
         />
       );
     }
 
-    // 확장 라인업 (유명 + 카테고리 충돌 최소화) *이미지 1순위: 위키, 2순위: 폴백*
+    /* =========================
+       선수 라인업 + 프로필
+    ========================== */
     const ATHLETES = [
       { id:"roger",    name:"Roger Gracie",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg", PH("Roger Gracie")],
         traits:["포지셔널 도미넌스","프레셔 패싱","정석 피니시"], compliment:"기본기와 안정감으로 경기를 지배하는 타입!" },
@@ -132,7 +135,6 @@
         traits:["베림보로 시스템","DLR & 스핀백","백 테이크"], compliment:"회전으로 공간을 여는 베림보로 마스터!" },
       { id:"meregali", name:"Nicholas Meregali", img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg", PH("Nicholas Meregali")],
         traits:["프레셔·탑 컨트롤","정석 서브미션","레슬/투사"], compliment:"강력한 탑 컨트롤과 정석의 교본!" },
-      // 추가 라인업 (이미지 폴백 우선 설계)
       { id:"craig",    name:"Craig Jones",       img:[null, PH("Craig Jones")],
         traits:["레그락 체인","오픈 가드","스크램블"], compliment:"레그 체인으로 흐름을 휘어잡는 다이내믹 파이터." },
       { id:"tonon",    name:"Garry Tonon",       img:[null, PH("Garry Tonon")],
@@ -153,7 +155,6 @@
         traits:["탑 압박","레슬/패싱","멘탈"], compliment:"강한 멘탈과 압박으로 경기를 장악." },
     ];
 
-    // 선수 프로필(0~10) — 축과 충돌 최소화, 유명 선수 특성 반영(대략)
     const PROFILES = {
       roger:{control:10,pressure:9,scramble:3, leglock:2, berimbolo:0, fundamental:10,wrestling:6, mental:8},
       marcelo:{control:6,pressure:5,scramble:9, leglock:3, berimbolo:2, fundamental:8,wrestling:5, mental:7},
@@ -165,7 +166,6 @@
       tye:{control:6,pressure:7,scramble:9,  leglock:6, berimbolo:2, fundamental:7,wrestling:8, mental:7},
       miyao:{control:6,pressure:3,scramble:7, leglock:3, berimbolo:10,fundamental:8,wrestling:3, mental:7},
       meregali:{control:9,pressure:9,scramble:6,leglock:3, berimbolo:2, fundamental:9,wrestling:7, mental:8},
-      // 추가
       craig:{control:6,pressure:5,scramble:8, leglock:10,berimbolo:3, fundamental:6,wrestling:5, mental:7},
       tonon:{control:6,pressure:5,scramble:10,leglock:7, berimbolo:3, fundamental:6,wrestling:6, mental:7},
       pena:{control:8,pressure:7,scramble:6, leglock:4, berimbolo:2, fundamental:8,wrestling:6, mental:8},
@@ -178,7 +178,7 @@
     };
 
     /* =========================
-       3) 질문 (MECE: 축 1:1)
+       질문 (축 1:1)
     ========================== */
     const QUESTIONS = [
       { id:1, axis:"control",     text:{ko:"포지션 컨트롤 성향은?", en:"Positional control?"},
@@ -216,7 +216,7 @@
     ];
 
     /* =========================
-       4) 스코어링: 가중 코사인
+       스코어링: 가중 코사인
     ========================== */
     function weightedCosine(a, b) {
       let dot=0, na=0, nb=0;
@@ -228,9 +228,9 @@
     }
 
     /* =========================
-       5) 결과 코멘트 자동 생성(축 기반)
+       결과 코멘트 자동 생성
     ========================== */
-    function buildAdvice(axes, lang="ko") {
+    function buildAdvice(axes) {
       const tips = [];
       if ((axes.leglock||0) >= 8) tips.push("레그락 체인을 더 깊게: 엔트리 다양화 + 반엔트리 방어 루틴.");
       if ((axes.berimbolo||0) >= 8) tips.push("베림보로 전개시 백 컨트롤 전환 각도 반복 연습.");
@@ -245,9 +245,7 @@
     }
 
     /* =========================
-       6) 공유 링크 생성(버튼 동작 확실히)
-          - 버튼은 <a href="..."> 형태로 만들어 팝업차단 회피
-          - Instagram: Web Share API or 링크 복사
+       공유 링크 & 버튼 헬퍼
     ========================== */
     function buildShareURL(platform, text, url) {
       const t = encodeURIComponent(text), u = encodeURIComponent(url);
@@ -261,7 +259,7 @@
     }
 
     /* =========================
-       7) 메인 앱
+       메인 앱
     ========================== */
     function App() {
       const [lang, setLang] = useState(detectLang());
@@ -272,13 +270,11 @@
       const [answers, setAnswers] = useState([]);
       const [shared, setShared] = useState(null);
 
-      // 공유 결과 링크로 진입 시
       useEffect(()=>{
         const r = new URLSearchParams(location.search).get("r");
         if (r) { try { const j = JSON.parse(atob(r)); if (j?.axes) { setShared(j); setStep("result"); } } catch(e){} }
       },[]);
 
-      // 내 축값
       const axes = useMemo(()=>{
         const acc = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
         (shared?.axes
@@ -287,7 +283,6 @@
         return acc;
       }, [answers, shared]);
 
-      // 승자 & Top3
       const winner = useMemo(()=>{
         let best=null, score=-1;
         for (const at of ATHLETES) {
@@ -402,12 +397,11 @@
         return ()=>{ if(chartRef.current) chartRef.current.destroy(); };
       }, [JSON.stringify(axes), lang]);
 
-      // 결과 URL (언어 포함)
+      // 결과 URL
       const payload = { axes, winner: winner?.id, ts: Date.now() };
       const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
       const text = (STR[lang]?.title || STR.en.title) + " — " + (winner?.name || "");
 
-      // 플랫폼별 링크(href로 직접 연결 = 팝업차단 회피)
       const SHARE = {
         line:      buildShareURL("line", text, url),
         whatsapp:  buildShareURL("whatsapp", text, url),
@@ -417,11 +411,10 @@
         sms:       buildShareURL("sms", text, url),
       };
 
-      // Kakao는 SDK 필요. 키가 없으면 안내 + 링크 복사로 대체 사용 권장.
       function shareKakao() {
         try {
           if (window.Kakao && !window.Kakao.isInitialized()) {
-            // 여기에 본인 카카오 JavaScript 키 넣으면 전용 버튼 동작합니다.
+            // 본인 JS 키로 교체하면 카카오 전용 버튼 활성화됨.
             window.Kakao.init("YOUR_KAKAO_JAVASCRIPT_KEY");
           }
           if (window.Kakao?.Share) {
@@ -442,12 +435,20 @@
         alert((STR[lang]?.kakaoTip || STR.en.kakaoTip) + "\n" + (STR[lang]?.copied || STR.en.copied));
       }
 
+      function shareNative() {
+        if (navigator.share) {
+          navigator.share({ title: document.title, text: 'BJJ Style', url }).catch(()=>{});
+        } else {
+          navigator.clipboard?.writeText(url);
+          alert(STR[lang]?.copied || STR.en.copied);
+        }
+      }
+
       function copyLink() {
         navigator.clipboard?.writeText(url);
         alert(STR[lang]?.copied || STR.en.copied);
       }
 
-      // Top3 + 신뢰도
       const top3 = useMemo(()=>{
         const arr = Object.keys(PROFILES).map(id=>({ id, sim: weightedCosine(axes, PROFILES[id]) }));
         arr.sort((a,b)=>b.sim-a.sim);
@@ -456,7 +457,7 @@
       const gap = (top3[0]?.sim||0) - (top3[1]?.sim||0);
       const conf = gap>=0.08 ? "높음" : gap>=0.04 ? "중간" : "낮음";
 
-      const advice = buildAdvice(axes, lang);
+      const advice = buildAdvice(axes);
 
       return (
         <div>
@@ -476,22 +477,19 @@
                 <br/>판정 신뢰도: <span className="font-semibold">{conf}</span> (격차 {Math.round(gap*100)}%)
               </div>
 
-              <!-- 공유 영역: href 직접 연결 방식으로 수정 (팝업차단 회피) -->
+              {/* 공유 영역: a 태그 + onClick 핸들러로 수정 */}
               <div className="mt-4">
                 <div className="text-sm text-gray-600 mb-2">{t.shareVia}</div>
                 <div className="flex flex-wrap gap-2">
-                  <a className="px-3 py-2 rounded-xl bg-[#FEE500] text-black" href="javascript:void(0)" onClick={shareKakao}>Kakao</a>
+                  <a className="px-3 py-2 rounded-xl bg-[#FEE500] text-black" href="#" onClick={(e)=>{e.preventDefault(); shareKakao();}}>Kakao</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.line} target="_blank" rel="noopener noreferrer">LINE</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.facebook} target="_blank" rel="noopener noreferrer">Facebook</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.telegram} target="_blank" rel="noopener noreferrer">Telegram</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.x} target="_blank" rel="noopener noreferrer">X</a>
                   <a className="px-3 py-2 rounded-xl border" href={SHARE.sms}>SMS</a>
-                  <a className="px-3 py-2 rounded-xl bg-black text-white" href="javascript:void(0)"
-                     onclick="if(navigator.share){navigator.share({title:document.title, text:'BJJ Style', url:location.href}).catch(()=>{});} else {navigator.clipboard?.writeText(location.href); alert('링크 복사 완료');}">
-                    Share
-                  </a>
-                  <a className="px-3 py-2 rounded-xl border" href="javascript:void(0)" onClick={copyLink}>{t.share}</a>
+                  <a className="px-3 py-2 rounded-xl bg-black text-white" href="#" onClick={(e)=>{e.preventDefault(); shareNative();}}>Share</a>
+                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); copyLink();}}>{t.share}</a>
                 </div>
               </div>
 
