@@ -1,8 +1,7 @@
-{/*doctype html*/}
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8"/>
-  {/*-- ✅ 인앱 확대/클로즈업 방지 --*/}
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
   <title>BJJ 스타일 테스트</title>
 
@@ -20,24 +19,19 @@
   <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 
   <style>
-    /* ✅ 배경 잘림/텍스트 자동확대 방지 */
     html, body { height: 100%; margin: 0; padding: 0; background: #ffffff; -webkit-text-size-adjust: 100%; }
     body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial }
-    /* ✅ 이미지/캔버스 과확대 방지 */
     img, canvas { max-width: 100%; height: auto; object-fit: contain; }
     .glass { backdrop-filter: blur(8px); }
-    /* ✅ 안전영역(노치) */
     .safe-area { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
   </style>
 </head>
 <body class="bg-gradient-to-b from-gray-50 to-white">
-  {/*-- ✅ 100svh로 인앱 브라우저 높이 오차 보정 --*/}
   <div id="root" class="min-h-[100svh] safe-area"></div>
 
   <script type="text/babel" data-presets="env,react">
     const { useMemo, useState, useEffect, useRef } = React;
 
-    /* ================= Error Boundary ================ */
     class ErrorBoundary extends React.Component {
       constructor(props){ super(props); this.state={hasError:false, err:null}; }
       static getDerivedStateFromError(err){ return {hasError:true, err}; }
@@ -54,7 +48,6 @@
       }
     }
 
-    /* ================= i18n ================= */
     const STR = {
       ko: { title:"주짓수 플레이 스타일 테스트", subtitle:"세밀 문항으로 닮은 선수와 스파이더차트를 확인하세요.",
         start:"시작하기", next:"다음", prev:"이전", submit:"결과 보기", restart:"다시 하기",
@@ -81,7 +74,6 @@
       return "en";
     }
 
-    /* ================= 축 & 가중치 ================= */
     const AXES = [
       { key:"control",       label:{ko:"포지션 컨트롤",  en:"Positional Control", ja:"コントロール"} },
       { key:"pressure",      label:{ko:"프레셔 패싱",    en:"Pressure Passing",   ja:"プレッシャー"} },
@@ -104,7 +96,6 @@
       finish:1.15
     };
 
-    /* ================= 이미지 폴백 ================= */
     const PH = (name) =>
       `data:image/svg+xml;charset=UTF-8,` +
       encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
@@ -127,7 +118,6 @@
       );
     }
 
-    /* ================= 선수 라인업 ================= */
     const ATHLETES = [
       { id:"gordon",   name:"Gordon Ryan",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg/640px-ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg", PH("Gordon Ryan")],
         traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
@@ -173,7 +163,6 @@
         traits:["버터플라이/엑스","스크램블","초크"], compliment:"타이밍 장인, 흐름 전환에 탁월." },
     ];
 
-    /* ================= 프로필(스탯 정답값) ================= */
     const PROFILES = {
       gordon:   {control:9, pressure:8, mobility:7, scramble:6, leglock:10, berimbolo:1, lapel:0, fundamental:8, wrestling:8, backtake:9, fronthead:8, guardret:8, finish:9},
       kaynan:   {control:9, pressure:9, mobility:8, scramble:7, leglock:5,  berimbolo:2, lapel:2, fundamental:9, wrestling:8, backtake:8, fronthead:9, guardret:8, finish:7},
@@ -199,7 +188,6 @@
       marcelo:  {control:6, pressure:5, mobility:7, scramble:9, leglock:4,  berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7, finish:9},
     };
 
-    /* ================= 문항 ================= */
     const L = (ko,en,ja)=>({ko,en,ja});
     const Q = []; let qid = 0;
     function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
@@ -235,7 +223,7 @@
       [{label:L("우선","First","優先"), val:10},{label:L("상황별","Situational","状況に応じて"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
 
     add("backtake", L("가드/패스 중 백 테이크 전환 빈도는?", "Back-take transitions from guard/passing?", "ガード/パス中のバックテイクへの移行頻度は？"),
-      [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("드뭌","Rare","めったにない"), val:0}]);
+      [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("드뭄","Rare","めったにない"), val:0}]);
 
     add("fronthead", L("프론트 헤드록 체인(길로틴/다스) 활용도는?", "Front-headlock chain (Guillotine/D'Arce)?", "フロントヘッドロックチェーン（ギロチン/ダース）の活用度は？"),
       [{label:L("높음","High","高い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
@@ -253,7 +241,6 @@
 
     const QUESTIONS = Q;
 
-    /* ================= 스코어링 ================= */
     function weightedCosine(a, b) {
       let dot=0, na=0, nb=0;
       for (const k of Object.keys(WEIGHTS)) {
@@ -263,7 +250,6 @@
       return dot / (Math.sqrt(na||1)*Math.sqrt(nb||1));
     }
 
-    /* ================= 결과 코멘트 ================= */
     function buildAdvice(ax) {
       const t=[];
       if ((ax.finish||0)>=8) t.push("피니시 시퀀스를 표준화하세요: 엔트리→고정→피니시 전환을 체크리스트로.");
@@ -280,7 +266,6 @@
       return t;
     }
 
-    /* ================= 공유 헬퍼 ================= */
     function buildShareURL(platform, text, url) {
       const t = encodeURIComponent(text), u = encodeURIComponent(url);
       if (platform === "line")      return `https://line.me/R/msg/text/?${t}%20${u}`;
@@ -296,7 +281,6 @@
       if (!w) location.href = url;
     }
 
-    /* ================= App ================= */
     function App() {
       const [lang, setLang] = useState(detectLang());
       const t = STR[lang] || STR.en;
@@ -388,7 +372,6 @@
       );
     }
 
-    /* ================= 안정화된 Quiz ================= */
     function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
       const total = QUESTIONS.length;
       const q = QUESTIONS[qIdx];
@@ -456,8 +439,8 @@
           <div className="flex justify-between mt-6">
             <button
               type="button"
-              className="px-4 py-2 rounded-xl border border-gray-300 disabled:opacity-40"
-              onClick={()=>setQIdx(i=>Math.max(0,i-1))}
+              className="px-4 py-2 rounded-xl border border-gray-300"
+              onClick={prev}
               disabled={qIdx === 0}
             >
               {t.prev}
@@ -467,7 +450,7 @@
               <button
                 type="button"
                 className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
-                onClick={()=>setQIdx(i=>Math.min(total-1,i+1))}
+                onClick={next}
                 disabled={picked == null}
               >
                 {t.next}
@@ -487,7 +470,6 @@
       );
     }
 
-    /* ================= 결과 ================= */
     function Result({ t, lang, axes, winner, sim, onRestart }) {
       const pickedAth = winner || ATHLETES[0];
       const safeAth = pickedAth || { id:"unknown", name:"Unknown", img:[PH("Unknown")], traits:[], compliment:"" };
@@ -542,7 +524,7 @@
           <h2 className="text-xl md:text-2xl font-extrabold">{t.yourResult}</h2>
 
           <div className="grid md:grid-cols-2 gap-6 items-center mt-4">
-            <!-- ✅ 클로즈업 방지: object-contain + 최대 높이 제한 -->
+            {/* ✅ 클로즈업 방지: object-contain + 최대 높이 제한 */}
             <SmartImage srcs={safeAth.img} alt={safeAth.name} className="w-full max-h-[360px] rounded-2xl shadow-md object-contain" />
             <div>
               <h3 className="text-2xl font-bold">{safeAth.name}</h3>
@@ -586,7 +568,6 @@
       );
     }
 
-    /* ============ RadarChart (이름 충돌 방지) ============ */
     function RadarChart({ axes, ath, lang }) {
       const canvasRef = useRef(null);
       const chartRef = useRef(null);
@@ -597,7 +578,7 @@
 
         const ctx = canvasRef.current.getContext('2d');
         const labels = AXES.map(ax => ax.label[lang] || ax.label.en);
-        const scores = AXES.map(ax => (axes[ax.key] || 0) * 10); // 0-100 스케일
+        const scores = AXES.map(ax => (axes[ax.key] || 0) * 10);
         const athScores = AXES.map(ax => (PROFILES[ath.id][ax.key] || 0) * 10);
 
         const data = {
@@ -610,8 +591,6 @@
               borderColor: 'rgb(54, 162, 235)',
               pointBackgroundColor: 'rgb(54, 162, 235)',
               pointBorderColor: '#fff',
-              pointHoverBackgroundColor: '#fff',
-              pointHoverBorderColor: 'rgb(54, 162, 235)'
             },
             {
               label: `${ath.name} 스타일`,
@@ -620,8 +599,6 @@
               borderColor: 'rgb(255, 99, 132)',
               pointBackgroundColor: 'rgb(255, 99, 132)',
               pointBorderColor: '#fff',
-              pointHoverBackgroundColor: '#fff',
-              pointHoverBorderColor: 'rgb(255, 99, 132)'
             }
           ]
         };
@@ -646,7 +623,6 @@
 
         if (chartRef.current) chartRef.current.destroy();
         chartRef.current = new ChartJS(ctx, config);
-
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [axes, ath.id, lang]);
 
