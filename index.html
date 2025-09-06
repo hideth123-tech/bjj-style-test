@@ -2,11 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"/>
-  <!-- 인앱(카톡) 확대/클로즈업 방지 -->
+  <!-- 카톡 인앱 확대/클로즈업/여백 문제 예방 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
   <title>BJJ 스타일 테스트</title>
 
-  <!-- OG/Twitter (이미지 제외) -->
   <meta property="og:title" content="BJJ 스타일 테스트"/>
   <meta property="og:description" content="세밀 문항으로 내 주짓수 스타일 매칭 + 스파이더차트"/>
   <meta name="twitter:card" content="summary"/>
@@ -23,7 +22,8 @@
     body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial }
     .glass { backdrop-filter: blur(8px); }
     .safe-area { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
-    .chip { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border; }
+    /* Tailwind @apply 대신 순수 CSS로 chip 구현 */
+    .chip { display:inline-flex; align-items:center; border:1px solid #e5e7eb; border-radius:9999px; padding:0.25rem 0.75rem; font-size:0.75rem; line-height:1rem; font-weight:500; color:#374151; background:#fff; }
   </style>
 </head>
 <body class="bg-gradient-to-b from-gray-50 to-white">
@@ -31,6 +31,25 @@
 
   <script type="text/babel" data-presets="env,react">
     const { useMemo, useState, useEffect, useRef } = React;
+
+    /* ================= Error Boundary (누락 보완) ================ */
+    class ErrorBoundary extends React.Component {
+      constructor(props){ super(props); this.state={hasError:false, err:null}; }
+      static getDerivedStateFromError(err){ return {hasError:true, err}; }
+      componentDidCatch(err, info){ console.error("Render error:", err, info); }
+      render(){
+        if(!this.state.hasError) return this.props.children;
+        return (
+          <div className="p-4 border rounded-2xl bg-red-50 text-red-800">
+            <div className="font-bold mb-1">결과 표시 중 문제가 발생했어요.</div>
+            <div className="text-sm">하단 버튼으로 처음부터 다시 진행할 수 있습니다.</div>
+            <div className="mt-3">
+              <button className="mt-2 px-4 py-2 rounded-xl border" onClick={this.props.onReset}>다시 하기</button>
+            </div>
+          </div>
+        );
+      }
+    }
 
     /* ================= i18n ================= */
     const STR = {
@@ -289,6 +308,11 @@
         setAnswers(next);
       }
 
+      function resetAll(){
+        setStep("intro"); setQIdx(0); setAnswers([]); setShared(null);
+        requestAnimationFrame(()=>window.scrollTo({top:0,behavior:"smooth"}));
+      }
+
       return (
         <div className="max-w-5xl mx-auto px-4 py-10">
           <header className="text-center mb-8">
@@ -320,11 +344,11 @@
             )}
 
             {step==="result" && (
-              <ErrorBoundary fallback={<div className="mt-3"><button className="mt-2 px-4 py-2 rounded-xl border" onClick={()=>{setStep("intro");setQIdx(0);setAnswers([]);setShared(null);}}>다시 하기</button></div>}>
+              <ErrorBoundary onReset={resetAll}>
                 <Result
                   lang={lang} t={t}
                   axes={axes} winner={winnerObj.at} sim={winnerObj.sim}
-                  onRestart={()=>{ setStep("intro"); setQIdx(0); setAnswers([]); setShared(null); }}
+                  onRestart={resetAll}
                 />
               </ErrorBoundary>
             )}
@@ -439,7 +463,6 @@
       const pickedAth = winner || ATHLETES[0];
       const safeAth = pickedAth || { id:"unknown", name:"Unknown", traits:[], pitch:"" };
 
-      // 결과 링크(공유용)
       const payload = { axes, winner: safeAth.id, ts: Date.now() };
       const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
       const text = (STR[lang]?.title || STR.en.title) + " — " + (safeAth.name || "");
@@ -452,17 +475,14 @@
         sms:       buildShareURL("sms", text, url),
       };
 
-      // 강점/보완 포인트
       const strengths = topKeys(axes, 3);
       const growth = bottomKeys(axes, 3);
 
-      // 선수와의 차이(두드러진 축)
       const prof = PROFILES[safeAth.id] || {};
       const deltas = Object.fromEntries(Object.keys(WEIGHTS).map(k=>[k, (axes[k]||0) - (prof[k]||0)]));
-      const plusKeys = topKeys(deltas, 2);      // 유저가 더 높은 축
-      const minusKeys = bottomKeys(deltas, 2);  // 유저가 더 낮은 축
+      const plusKeys = topKeys(deltas, 2);
+      const minusKeys = bottomKeys(deltas, 2);
 
-      // 요약 문장
       function summarySentence() {
         const hi = strengths.map(k=>fmtAxisLabel(lang,k)).join(", ");
         const lo = growth.map(k=>fmtAxisLabel(lang,k)).join(", ");
@@ -499,13 +519,13 @@
             <section className="rounded-2xl border p-4 md:p-6">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-lg md:text-xl font-bold">{safeAth.name}</span>
-                <span className="chip border-gray-300 text-gray-700">매칭도 { (sim*100).toFixed(1) }%</span>
+                <span className="chip">매칭도 { ((sim ?? 0)*100).toFixed(1) }%</span>
               </div>
               <p className="mt-2 text-gray-700">{safeAth.pitch}</p>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {safeAth.traits.map((tr,i)=>(
-                  <span key={i} className="chip border-gray-300">{tr}</span>
+                  <span key={i} className="chip">{tr}</span>
                 ))}
               </div>
             </section>
@@ -575,7 +595,7 @@
       );
     }
 
-    /* ============ RadarChart ============ */
+    /* ============ RadarChart (프로필 누락 방어 추가) ============ */
     function RadarChart({ axes, ath, lang }) {
       const canvasRef = useRef(null);
       const chartRef = useRef(null);
@@ -584,10 +604,10 @@
         const ChartJS = window.Chart;
         if (!ChartJS || !canvasRef.current) return;
 
-        const ctx = canvasRef.current.getContext('2d');
+        const prof = PROFILES[ath.id] || {};
         const labels = AXES.map(ax => ax.label[lang] || ax.label.en);
         const scores = AXES.map(ax => (axes[ax.key] || 0) * 10); // 0-100
-        const athScores = AXES.map(ax => (PROFILES[ath.id][ax.key] || 0) * 10);
+        const athScores = AXES.map(ax => ((prof[ax.key] || 0)) * 10);
 
         const data = {
           labels,
@@ -630,7 +650,7 @@
         };
 
         if (chartRef.current) chartRef.current.destroy();
-        chartRef.current = new ChartJS(ctx, config);
+        chartRef.current = new ChartJS(canvasRef.current.getContext('2d'), config);
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [axes, ath.id, lang]);
 
