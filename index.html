@@ -65,10 +65,7 @@
       return "en";
     }
 
-    /* ===== 축 정의(12개) & 가중치 =====
-       - 더 디테일한 평가를 위해 12축으로 확장
-       - 한 축에 여러 문항이 매핑되며 평균으로 산정
-    */
+    /* ===== 축 정의(12개) & 가중치 ===== */
     const AXES = [
       { key:"control",       label:{ko:"포지션 컨트롤",  en:"Positional Control", ja:"コントロール"} },
       { key:"pressure",      label:{ko:"프레셔 패싱",    en:"Pressure Passing",    ja:"プレッシャー"} },
@@ -83,7 +80,6 @@
       { key:"fronthead",     label:{ko:"프론트 헤드록",  en:"Front Headlock",      ja:"フロントヘッドロック"} },
       { key:"guardret",      label:{ko:"가드 리텐션",    en:"Guard Retention",     ja:"ガードリテンション"} },
     ];
-    // 도메인 중요도 가중치
     const WEIGHTS = {
       control:1.15, pressure:1.1, mobility:1.0, scramble:1.0,
       leglock:1.2, berimbolo:0.9, lapel:0.9, fundamental:1.0,
@@ -113,76 +109,83 @@
       );
     }
 
-    /* ===== 선수 라인업 (확장) ===== */
+    /* ===== 최신 임팩트 선수 라인업 (ADCC’24/CJI’24-’25/문디알 강자 위주) ===== */
     const ATHLETES = [
-      // 기존
-      { id:"roger",    name:"Roger Gracie",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg", PH("Roger Gracie")],
-        traits:["포지셔널 도미넌스","프레셔 패싱","정석 피니시"], compliment:"기본기와 안정감으로 경기를 지배하는 타입!" },
-      { id:"marcelo",  name:"Marcelo Garcia",    img:["https://upload.wikimedia.org/wikipedia/commons/7/72/Marcelo_Garcia_2009_ADCC.jpg", PH("Marcelo Garcia")],
-        traits:["버터플라이/엑스","스크램블","초크 지향"], compliment:"타이밍 장인! 작은 틈으로 흐름을 바꿉니다." },
+      // 노기/ADCC & CJI 핵심
       { id:"gordon",   name:"Gordon Ryan",       img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg", PH("Gordon Ryan")],
-        traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"한 수 앞을 읽는 설계자! 시스템으로 상대를 묶습니다." },
+        traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
+      { id:"kaynan",   name:"Kaynan Duarte",     img:["https://upload.wikimedia.org/wikipedia/commons/8/8d/Kaynan_Duarte.jpg", PH("Kaynan Duarte")],
+        traits:["더블골드(ADCC’24)","압박+모빌리티","길로틴/프론트체인"], compliment:"균형 잡힌 파워/기술로 국면을 지배." },
+      { id:"mica",     name:"Mica Galvão",       img:[null, PH("Mica Galvão")],
+        traits:["하이 템포","피니시 성향","77kg 강자"], compliment:"템포로 흔들고 피니시로 마무리." },
+      { id:"diogo",    name:"Diogo Reis",        img:[null, PH("Diogo Reis")],
+        traits:["-66kg 챔피언","모빌리티","백테이크"], compliment:"민첩한 전환과 날카로운 백 게임." },
+      { id:"bodoni",   name:"Giancarlo Bodoni",  img:[null, PH("Giancarlo Bodoni")],
+        traits:["-88kg 챔피언","체계적 패싱","컨트롤"], compliment:"정돈된 시퀀스로 안정적 우세를 쌓음." },
+      { id:"pena",     name:"Felipe Pena",       img:[null, PH("Felipe Pena")],
+        traits:["+99kg 챔피언","백 컨트롤","전략 운영"], compliment:"전통과 현대가 섞인 안정적 피니셔." },
+      { id:"nickyrod", name:"Nick Rodriguez",    img:[null, PH("Nick Rodriguez")],
+        traits:["레슬/탑컨","스크램블","CJI 임팩트"], compliment:"레슬과 체력으로 상단에서 압박." },
+      { id:"craig",    name:"Craig Jones",       img:[null, PH("Craig Jones")],
+        traits:["레그락 시스템","K-가드","CJI 주역"], compliment:"합리적 레그 체인으로 기회를 창출." },
+      { id:"luke",     name:"Luke Griffith",     img:[null, PH("Luke Griffith")],
+        traits:["헤비급 강자","New Wave","CJI 파이널 파이터"], compliment:"견고한 컨트롤과 상체 체인이 강점." },
+      { id:"helena",   name:"Helena Crevar",     img:[null, PH("Helena Crevar")],
+        traits:["CJI 여성 우승","다이나믹","서브미션 위협"], compliment:"젊은 에너지로 시종일관 공격 구사." },
+
+      // 기(IBJJF·문디알) & 노기 크로스오버 강자
+      { id:"meregali", name:"Nicholas Meregali", img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg", PH("Nicholas Meregali")],
+        traits:["기 GOAT 후보","탑 컨트롤","서브미션"], compliment:"정석과 피지컬이 조화된 교본형." },
+      { id:"tainan",   name:"Tainan Dalpra",     img:[null, PH("Tainan Dalpra")],
+        traits:["기 테크니션","라인·각도","포지셔널"], compliment:"디테일로 공간을 만드는 테크니션." },
+      { id:"keenan",   name:"Keenan Cornelius",  img:[null, PH("Keenan Cornelius")],
+        traits:["라펠/웜","가드 전환","시스템"], compliment:"라펠 시스템으로 흐름을 설계." },
+      { id:"rafa",     name:"Rafael Mendes",     img:[null, PH("Rafael Mendes")],
+        traits:["DLR/베림보로","백테이크","페더 전설"], compliment:"정밀한 각도로 백을 장악하는 아티스트." },
+      { id:"cobrinha", name:"Rubens \"Cobrinha\" Charles", img:[null, PH("Cobrinha")],
+        traits:["가드 리텐션","백 위협","템포"], compliment:"리텐션-백 체인으로 상시 압박." },
+
+      // 기존 인기/식별성 높은 선수 (유효성 높음)
       { id:"mikey",    name:"Mikey Musumeci",    img:["https://upload.wikimedia.org/wikipedia/commons/8/83/Mikey_Musumeci_2019.jpg", PH("Mikey Musumeci")],
-        traits:["정교한 디테일","각도 만들기","라이트급 테크니션"], compliment:"디테일 장인! 미세한 각도로 끝냅니다." },
-      { id:"gabi",     name:"Gabi Garcia",       img:["https://upload.wikimedia.org/wikipedia/commons/5/58/Gabi_Garcia_2013.jpg", PH("Gabi Garcia")],
-        traits:["피지컬·테크닉 밸런스","탑 압박","멘탈"], compliment:"존재감과 힘의 조화! 상단에서 주도합니다." },
-      { id:"adam",     name:"Adam Wardzinski",   img:["https://upload.wikimedia.org/wikipedia/commons/8/87/Adam_Wardzinski_2019.jpg", PH("Adam Wardzinski")],
-        traits:["버터플라이 교본","암드래그·스윕","탑 전환"], compliment:"버터플라이의 교과서! 언밸런스로 기회를 만듭니다." },
-      { id:"cade",     name:"Kade Ruotolo",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2d/Kade_Ruotolo_2022.jpg", PH("Kade Ruotolo")],
-        traits:["하이 템포","레슬 엔트리·다스","다이나믹"], compliment:"템포의 화신! 끊임없이 몰아붙입니다." },
+        traits:["정교 디테일","라이트급","하이 가드IQ"], compliment:"디테일로 승부 보는 정밀 테크니션." },
       { id:"tye",      name:"Tye Ruotolo",       img:["https://upload.wikimedia.org/wikipedia/commons/8/8c/Tye_Ruotolo_2022.jpg", PH("Tye Ruotolo")],
         traits:["공격적 패싱","레슬/스크램블","다이나믹"], compliment:"탑에서 파고드는 공격성으로 흔듭니다." },
-      { id:"miyao",    name:"Paulo Miyao",       img:["https://upload.wikimedia.org/wikipedia/commons/9/9a/Paulo_Miyao_2014.jpg", PH("Paulo Miyao")],
-        traits:["베림보로 시스템","DLR & 스핀백","백 테이크"], compliment:"회전으로 공간을 여는 베림보로 마스터!" },
-      { id:"meregali", name:"Nicholas Meregali", img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg", PH("Nicholas Meregali")],
-        traits:["프레셔·탑 컨트롤","정석 서브미션","레슬/투사"], compliment:"강력한 탑 컨트롤과 정석의 교본!" },
-      // 추가 유명 선수
-      { id:"leandro",  name:"Leandro Lo",        img:[null, PH("Leandro Lo")],
-        traits:["스탠딩 패싱","모빌리티","타이밍"], compliment:"유려한 스탠딩 패스로 공간을 제어합니다." },
-      { id:"nickyrod", name:"Nick Rodriguez",    img:[null, PH("Nick Rodriguez")],
-        traits:["레슬/스크램블","탑 컨트롤","노기 압박"], compliment:"레슬 기반의 강력한 탑 컨트롤러!" },
-      { id:"buchecha", name:"Marcus 'Buchecha' Almeida", img:[null, PH("Buchecha")],
-        traits:["파워+기술","탑/백 전환","기/노기 밸런스"], compliment:"다재다능한 왕자—모든 국면에서 위협적." },
-      { id:"keenan",   name:"Keenan Cornelius",  img:[null, PH("Keenan Cornelius")],
-        traits:["라펠/웜","가드 전환","시스템 구축"], compliment:"라펠 시스템으로 흐름을 설계합니다." },
-      { id:"rafa",     name:"Rafael Mendes",     img:[null, PH("Rafael Mendes")],
-        traits:["DLR/베림보로","백 테이크","페더의 교본"], compliment:"정밀한 각도로 백을 장악하는 아티스트." },
-      { id:"cobrinha", name:"Rubens 'Cobrinha' Charles", img:[null, PH("Cobrinha")],
-        traits:["가드 리텐션","백 테이크","하이 템포"], compliment:"끊임없는 리텐션과 백 위협으로 압도." },
-      { id:"galvao",   name:"Andre Galvao",      img:[null, PH("Andre Galvao")],
-        traits:["레슬/패싱","프론트헤드록","ADCC 강자"], compliment:"레슬-패싱-프론트헤드의 삼박자." },
-      { id:"lachlan",  name:"Lachlan Giles",     img:[null, PH("Lachlan Giles")],
-        traits:["레그락","K-가드","기술 디테일"], compliment:"합리적 레그 시스템으로 체급을 넘습니다." },
+      { id:"cade",     name:"Kade Ruotolo",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2d/Kade_Ruotolo_2022.jpg", PH("Kade Ruotolo")],
+        traits:["하이 템포","다스/프론트체인","다이나믹"], compliment:"끊임없는 템포로 압박하는 파이터." },
+      { id:"roger",    name:"Roger Gracie",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg", PH("Roger Gracie")],
+        traits:["포지셔널 교과서","프레셔","정석 피니시"], compliment:"기본기로 경기를 지배하는 안정형." },
+      { id:"marcelo",  name:"Marcelo Garcia",    img:["https://upload.wikimedia.org/wikipedia/commons/7/72/Marcelo_Garcia_2009_ADCC.jpg", PH("Marcelo Garcia")],
+        traits:["버터플라이/엑스","스크램블","초크"], compliment:"타이밍 장인, 흐름 전환에 탁월." },
     ];
 
-    /* ===== 선수 프로필 (12축, 0~10) =====
-       - 사실성에 맞게 대략 값 부여 (룰/시대 차이는 평균화)
-    */
+    /* ===== 선수 프로필 (12축, 0~10) — 최신 임팩트 반영 재튜닝 ===== */
     const PROFILES = {
-      roger:   {control:10,pressure:9, mobility:4, scramble:3, leglock:3, berimbolo:0, lapel:4, fundamental:10,wrestling:6, backtake:9, fronthead:4, guardret:8},
-      marcelo: {control:6, pressure:5, mobility:7, scramble:9, leglock:4, berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7},
       gordon:  {control:9, pressure:7, mobility:6, scramble:5, leglock:10,berimbolo:1, lapel:0, fundamental:8, wrestling:6, backtake:8, fronthead:8, guardret:8},
-      mikey:   {control:7, pressure:4, mobility:7, scramble:6, leglock:7, berimbolo:7, lapel:5, fundamental:9, wrestling:3, backtake:7, fronthead:4, guardret:9},
-      gabi:    {control:8, pressure:9, mobility:4, scramble:4, leglock:2, berimbolo:0, lapel:3, fundamental:7, wrestling:6, backtake:7, fronthead:4, guardret:7},
-      adam:    {control:6, pressure:5, mobility:6, scramble:7, leglock:4, berimbolo:3, lapel:2, fundamental:7, wrestling:4, backtake:7, fronthead:5, guardret:8},
-      cade:    {control:6, pressure:6, mobility:8, scramble:10,leglock:7, berimbolo:3, lapel:0, fundamental:6, wrestling:8, backtake:8, fronthead:8, guardret:7},
-      tye:     {control:6, pressure:7, mobility:8, scramble:9, leglock:6, berimbolo:2, lapel:0, fundamental:7, wrestling:8, backtake:8, fronthead:7, guardret:7},
-      miyao:   {control:6, pressure:3, mobility:6, scramble:7, leglock:3, berimbolo:10,lapel:5, fundamental:8, wrestling:3, backtake:9, fronthead:3, guardret:9},
-      meregali:{control:9, pressure:9, mobility:6, scramble:6, leglock:3, berimbolo:2, lapel:4, fundamental:9, wrestling:7, backtake:8, fronthead:4, guardret:8},
-      // 추가
-      leandro: {control:7, pressure:6, mobility:10,scramble:8, leglock:3, berimbolo:3, lapel:4, fundamental:8, wrestling:6, backtake:8, fronthead:5, guardret:8},
+      kaynan:  {control:9, pressure:8, mobility:7, scramble:7, leglock:4, berimbolo:2, lapel:2, fundamental:9, wrestling:8, backtake:8, fronthead:8, guardret:8},
+      mica:    {control:7, pressure:6, mobility:8, scramble:9, leglock:6, berimbolo:3, lapel:0, fundamental:7, wrestling:7, backtake:8, fronthead:6, guardret:8},
+      diogo:   {control:7, pressure:5, mobility:9, scramble:9, leglock:5, berimbolo:3, lapel:0, fundamental:8, wrestling:6, backtake:9, fronthead:5, guardret:9},
+      bodoni:  {control:9, pressure:7, mobility:6, scramble:6, leglock:5, berimbolo:2, lapel:0, fundamental:9, wrestling:6, backtake:8, fronthead:6, guardret:8},
+      pena:    {control:9, pressure:8, mobility:6, scramble:6, leglock:4, berimbolo:2, lapel:2, fundamental:9, wrestling:7, backtake:9, fronthead:5, guardret:8},
       nickyrod:{control:7, pressure:8, mobility:6, scramble:9, leglock:4, berimbolo:0, lapel:0, fundamental:7, wrestling:10,backtake:7, fronthead:7, guardret:7},
-      buchecha:{control:9, pressure:8, mobility:7, scramble:7, leglock:3, berimbolo:2, lapel:4, fundamental:9, wrestling:8, backtake:9, fronthead:5, guardret:8},
+      craig:   {control:7, pressure:5, mobility:6, scramble:7, leglock:10,berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:7, fronthead:6, guardret:8},
+      luke:    {control:8, pressure:7, mobility:6, scramble:6, leglock:5, berimbolo:1, lapel:0, fundamental:8, wrestling:7, backtake:7, fronthead:7, guardret:8},
+      helena:  {control:7, pressure:5, mobility:7, scramble:8, leglock:6, berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:8, fronthead:5, guardret:8},
+
+      meregali:{control:9, pressure:9, mobility:6, scramble:6, leglock:3, berimbolo:2, lapel:4, fundamental:9, wrestling:7, backtake:8, fronthead:4, guardret:8},
+      tainan:  {control:9, pressure:7, mobility:7, scramble:6, leglock:3, berimbolo:3, lapel:6, fundamental:10,wrestling:6, backtake:8, fronthead:4, guardret:9},
       keenan:  {control:7, pressure:5, mobility:6, scramble:6, leglock:5, berimbolo:6, lapel:10,fundamental:8, wrestling:4, backtake:8, fronthead:4, guardret:9},
       rafa:    {control:8, pressure:6, mobility:8, scramble:8, leglock:4, berimbolo:9, lapel:6, fundamental:9, wrestling:6, backtake:10,fronthead:5, guardret:9},
       cobrinha:{control:8, pressure:7, mobility:8, scramble:9, leglock:4, berimbolo:6, lapel:5, fundamental:9, wrestling:6, backtake:9, fronthead:6, guardret:10},
-      galvao:  {control:8, pressure:8, mobility:7, scramble:7, leglock:5, berimbolo:2, lapel:2, fundamental:8, wrestling:9, backtake:8, fronthead:9, guardret:8},
-      lachlan: {control:7, pressure:5, mobility:6, scramble:6, leglock:10,berimbolo:2, lapel:1, fundamental:8, wrestling:5, backtake:7, fronthead:6, guardret:9},
+
+      // 유지(식별성 높은 기존 강자)
+      mikey:   {control:7, pressure:4, mobility:7, scramble:6, leglock:7, berimbolo:7, lapel:5, fundamental:9, wrestling:3, backtake:7, fronthead:4, guardret:9},
+      tye:     {control:6, pressure:7, mobility:8, scramble:9, leglock:6, berimbolo:2, lapel:0, fundamental:7, wrestling:8, backtake:8, fronthead:7, guardret:7},
+      cade:    {control:6, pressure:6, mobility:8, scramble:10,leglock:7, berimbolo:3, lapel:0, fundamental:6, wrestling:8, backtake:8, fronthead:8, guardret:7},
+      roger:   {control:10,pressure:9, mobility:4, scramble:3, leglock:3, berimbolo:0, lapel:4, fundamental:10,wrestling:6, backtake:9, fronthead:4, guardret:8},
+      marcelo: {control:6, pressure:5, mobility:7, scramble:9, leglock:4, berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7},
     };
 
-    /* ===== 질문 (디테일, 축당 여러 문항) =====
-       - 값: 강(10) / 중(6) / 약(2) 기본 스케일
-    */
+    /* ===== 질문 (디테일, 축당 여러 문항) ===== */
     const L = (ko,en)=>({ko,en});
     const Q = []; let qid = 0;
     function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
@@ -206,11 +209,11 @@
     // Leglocks
     add("leglock", L("엔트리 다양성(Outside/Inside/K-Guard 등)은?", "Leg entry diversity (outside/inside/K-guard)?"),
       [{label:L("다양/시스템적","Diverse/Systematic"), val:10},{label:L("기회형","Opportunistic"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-    add("leglock", L("레그락 먼저 노리나요(레그→상체 전환 포함)?", "Initiate with legs (legs→upper transitions)?"),
+    add("leglock", L("레그락을 먼저 노리나요(레그→상체 전환 포함)?", "Initiate with legs (legs→upper transitions)?"),
       [{label:L("자주","Often"), val:10},{label:L("상황별","Sometimes"), val:6},{label:L("드뭄","Rare"), val:2}]);
 
     // Berimbolo
-    add("berimbolo", L("베림보로/반(미야오식) 빈도는?", "Berimbolo/variations frequency?"),
+    add("berimbolo", L("베림보로/변형(미야오식) 사용 빈도는?", "Berimbolo/variations frequency?"),
       [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
 
     // Lapel/Worm (Gi)
@@ -237,9 +240,9 @@
     add("guardret", L("오픈가드 리텐션(리프레이밍/그란비)의 자신감은?", "Open-guard retention (reframing/granby)?"),
       [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    const QUESTIONS = Q; // 최종 배열
+    const QUESTIONS = Q;
 
-    /* ===== 스코어링 ===== */
+    /* ===== 축 평균 → 가중 코사인 ===== */
     function weightedCosine(a, b) {
       let dot=0, na=0, nb=0;
       for (const k of Object.keys(WEIGHTS)) {
@@ -249,19 +252,19 @@
       return dot / (Math.sqrt(na||1)*Math.sqrt(nb||1));
     }
 
-    /* ===== 결과 코멘트 ===== */
+    /* ===== 결과 코멘트(자연스러운 문장으로 교체) ===== */
     function buildAdvice(ax) {
       const t=[];
-      if ((ax.leglock||0)>=8) t.push("레그락 체인 심화: 엔트리 다양화 + 반엔트리 방어 루틴");
-      if ((ax.berimbolo||0)>=8) t.push("베림보로 각도/그립 디테일과 백 고정 전환 반복");
-      if ((ax.lapel||0)>=8) t.push("라펠 엔트리 후 스윕→백 연결 루틴 정형화");
-      if ((ax.pressure||0)>=8) t.push("프레셔→사이드→마운트 연결 드릴 고정");
-      if ((ax.mobility||0)>=8) t.push("모빌리티 패스 후 백·마운트 전환 각도 확립");
-      if ((ax.wrestling||0)>=8) t.push("엔트리 실패 대비 가드 리텐션 복구 루틴");
-      if ((ax.backtake||0)>=8) t.push("탑/가드 모두에서 백 전환 타이밍 체크리스트화");
-      if ((ax.fronthead||0)>=8) t.push("프론트헤드에서 다스/아나콘다 변주 루틴 확장");
-      if ((ax.guardret||0)>=8) t.push("리텐션→리빌드→카운터 엔트리 시스템화");
-      if (!t.length) t.push("균형형: 상대/룰에 맞춰 강점 1~2축을 스파이크하세요.");
+      if ((ax.leglock||0)>=8) t.push("레그락 체인을 더 깊게: 다양한 엔트리와 반엔트리 대응을 루틴화하세요.");
+      if ((ax.berimbolo||0)>=8) t.push("베림보로 각도·그립 디테일을 다듬고 백 고정 전환을 반복 훈련하세요.");
+      if ((ax.lapel||0)>=8) t.push("라펠 엔트리 후 스윕→백 연결 루틴을 상황별로 정형화하세요.");
+      if ((ax.pressure||0)>=8) t.push("프레셔 패스에서 사이드→마운트 연결 디테일을 고정하세요.");
+      if ((ax.mobility||0)>=8) t.push("모빌리티 패스 뒤 백·마운트 전환 각도를 명확히 하세요.");
+      if ((ax.wrestling||0)>=8) t.push("레슬 엔트리 실패 시 리커버리와 가드 리텐션까지 이어지는 플로우를 만드세요.");
+      if ((ax.backtake||0)>=8) t.push("탑/가드 모두에서 백 전환 타이밍 체크리스트를 준비하세요.");
+      if ((ax.fronthead||0)>=8) t.push("프론트 헤드록에서 다스/아나콘다 변주를 확장하세요.");
+      if ((ax.guardret||0)>=8) t.push("리텐션→리빌드→카운터 엔트리 흐름을 시스템화하세요.");
+      if (!t.length) t.push("현재는 균형형입니다. 상대 스타일과 룰에 맞춰 강점 축 1~2개를 더 선명하게 가져가면 좋아요.");
       return t;
     }
 
@@ -361,7 +364,7 @@
               />
             )}
 
-            <p className="text-xs text-gray-400 mt-6">* 외부 이미지가 막히면 플레이스홀더가 보입니다. 카카오 전용 버튼은 도메인 등록+JS 키 필요.</p>
+            <p className="text-xs text-gray-400 mt-6">© MK Corporation</p>
           </main>
         </div>
       );
