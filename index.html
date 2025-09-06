@@ -32,7 +32,7 @@
 <body class="bg-gradient-to-b from-gray-50 to-white min-h-screen">
   <div id="root"></div>
 
-  <!-- ✅ 중요: data-presets="env,react" 추가 -->
+  <!-- 중요: data-presets="env,react" -->
   <script type="text/babel" data-presets="env,react">
     const { useMemo, useState, useEffect, useRef } = React;
 
@@ -186,57 +186,45 @@
     const Q = []; let qid = 0;
     function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
 
-    // Control
     add("control", L("상위 포지션(사이드/마운트) 고정 능력은?", "Top position (side/mount) control?"),
       [{label:L("매우 강함","Very strong"), val:10},{label:L("보통","Moderate"), val:6},{label:L("약함","Low"), val:2}]);
     add("control", L("백 컨트롤에서 훅/시트벨트 유지력은?", "Back control retention?"),
       [{label:L("매우 강함","Very strong"), val:10},{label:L("보통","Moderate"), val:6},{label:L("약함","Low"), val:2}]);
 
-    // Pressure vs Mobility Passing
     add("pressure", L("바디락/프레셔 패싱 비중은?", "Bodylock/pressure passing?"),
       [{label:L("주 무기","Primary"), val:10},{label:L("상황별","Situational"), val:6},{label:L("드뭄","Rare"), val:2}]);
     add("mobility", L("토레안도/롱스텝/레그드랙 등 모빌리티 패싱 비중은?", "Torreando/long-step/leg-drag mobility?"),
       [{label:L("주 무기","Primary"), val:10},{label:L("상황별","Situational"), val:6},{label:L("드뭄","Rare"), val:2}]);
 
-    // Scramble / Tempo
     add("scramble", L("하이 템포 스크램블 선호?", "High-tempo scrambles preference?"),
       [{label:L("매우 높음","Very high"), val:10},{label:L("보통","Balanced"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    // Leglocks
     add("leglock", L("엔트리 다양성(Outside/Inside/K-Guard 등)은?", "Leg entry diversity (outside/inside/K-guard)?"),
       [{label:L("다양/시스템적","Diverse/Systematic"), val:10},{label:L("기회형","Opportunistic"), val:6},{label:L("거의 없음","Rare"), val:2}]);
     add("leglock", L("레그락을 먼저 노리나요(레그→상체 전환 포함)?", "Initiate with legs (legs→upper transitions)?"),
-      [{label:L("자주","Often"), val:10},{label:L("상황별","Sometimes"), val:6},{label:L("드뭄","Rare"), val:2}]);
+      [{label:L("자주","Often"), val:10},{label:L("상황별","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
 
-    // Berimbolo
     add("berimbolo", L("베림보로/변형 사용 빈도는?", "Berimbolo/variations frequency?"),
       [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
 
-    // Lapel/Worm (Gi)
     add("lapel", L("라펠/웜/라소 계열 사용 빈도는?(Gi)", "Lapel/Worm/Lasso usage (Gi)"),
       [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
 
-    // Fundamentals
     add("fundamental", L("정석 콤보(암바/삼각/초크) 선호도는?", "Classic subs (armbar/triangle/choke)?"),
       [{label:L("매우 높음","Very high"), val:10},{label:L("보통","Balanced"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    // Wrestling/TD
     add("wrestling", L("테이크다운 지향(노기 기준 포함)은?", "Takedown emphasis (incl. No-Gi)?"),
       [{label:L("우선","First"), val:10},{label:L("상황별","Situational"), val:6},{label:L("거의 없음","Rare"), val:2}]);
 
-    // Back takes
     add("backtake", L("가드/패스 중 백 테이크 전환 빈도는?", "Back-take transitions from guard/passing?"),
       [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("드뭄","Rare"), val:2}]);
 
-    // Front headlock chain
     add("fronthead", L("프론트 헤드록 체인(길로틴/다스) 활용도는?", "Front-headlock chain (Guillotine/D'Arce)?"),
       [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    // Guard retention
     add("guardret", L("오픈가드 리텐션(리프레이밍/그란비)의 자신감은?", "Open-guard retention (reframing/granby)?"),
       [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    // Finish orientation
     add("finish", L("경기 운영 성향은?", "Match orientation?"),
       [
         { label: L("공격적 서브미션 추구", "Aggressive submission hunting"), val: 10 },
@@ -268,7 +256,7 @@
       if ((ax.mobility||0)>=8) t.push("모빌리티 패스 뒤 백·마운트 전환 각도 명확화.");
       if ((ax.wrestling||0)>=8) t.push("레슬 엔트리 실패 시 리커버리/리텐션 플로우 준비.");
       if ((ax.backtake||0)>=8) t.push("탑/가드 모두에서 백 전환 타이밍을 체크리스트화.");
-      if ((ax.fronthead||0)>=8) t.push("프론트 헤드록에서 다스/아나콘다 변주 확장.");
+      if ((ax.fronthead||0)>=8) t.push("프론트 헤드록에서 다스/अ나콘다 변주 확장.");
       if ((ax.guardret||0)>=8) t.push("리텐션→리빌드→카운터 엔트리 흐름을 시스템화.");
       if (!t.length) t.push("현재는 균형형입니다. 상대 스타일과 룰에 맞춰 강점 1~2축을 조금 더 선명하게 가져가면 좋아요.");
       return t;
@@ -378,48 +366,102 @@
       );
     }
 
+    /* ===== 안정화된 Quiz (모바일 탭/엔터/가드 포함) ===== */
     function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
       const total = QUESTIONS.length;
       const q = QUESTIONS[qIdx];
       if (!q) return null;
 
-      const picked = answers.find(a=>a.id===q.id)?.val;
-      const pct = Math.round(((qIdx+1)/total)*100);
+      const picked = answers.find(a => a.id === q.id)?.val;
+      const pct = Math.round(((qIdx + 1) / total) * 100);
+      const isLast = qIdx === total - 1;
+
+      function submitNow() {
+        try {
+          const hasAnyAnswer = answers.length > 0;
+          if (picked == null && !hasAnyAnswer) return;
+          onSubmit();
+          requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+        } catch (e) {
+          onSubmit();
+        }
+      }
+      function next() { setQIdx(i => Math.min(total - 1, i + 1)); }
+      function prev() { setQIdx(i => Math.max(0, i - 1)); }
+      function onPress(handler) { return (ev) => { ev.preventDefault(); handler(); }; }
+
+      useEffect(() => {
+        function onKey(e) {
+          if (e.key === "Enter") {
+            if (!isLast && picked != null) next();
+            else if (isLast && picked != null) submitNow();
+          }
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+      }, [isLast, picked]);
 
       return (
         <div>
           <div className="w-full">
-            <div className="flex justify-between text-sm text-gray-500 mb-1"><span>Q{qIdx+1}</span><span>{pct}%</span></div>
+            <div className="flex justify-between text-sm text-gray-500 mb-1">
+              <span>Q{qIdx + 1}</span>
+              <span>{pct}%</span>
+            </div>
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-black/80" style={{width: pct+'%'}}/>
+              <div className="h-full bg-black/80" style={{ width: pct + "%" }} />
             </div>
           </div>
 
           <h2 className="text-xl md:text-2xl font-bold mt-6">{q.text[lang] || q.text.en}</h2>
+
           <div className="grid gap-3 mt-4">
-            {q.options.map((opt,i)=>(
-              <button key={i} onClick={()=>pick(opt.val)}
-                className={"text-left border rounded-2xl p-4 transition " + (picked===opt.val ? "border-black bg-black text-white" : "border-gray-200 hover:border-black")}>
+            {q.options.map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => pick(opt.val)}
+                onTouchEnd={() => pick(opt.val)}
+                className={
+                  "text-left border rounded-2xl p-4 transition " +
+                  (picked === opt.val
+                    ? "border-black bg-black text-white"
+                    : "border-gray-200 hover:border-black")
+                }
+              >
                 {opt.label[lang] || opt.label.en}
               </button>
             ))}
           </div>
 
           <div className="flex justify-between mt-6">
-            <button className="px-4 py-2 rounded-xl border border-gray-300" onClick={()=>setQIdx(i=>Math.max(0,i-1))} disabled={qIdx===0}>{t.prev}</button>
-            {qIdx < total-1 ? (
+            <button
+              type="button"
+              className="px-4 py-2 rounded-xl border border-gray-300"
+              onClick={onPress(prev)}
+              onTouchEnd={onPress(prev)}
+              disabled={qIdx === 0}
+            >
+              {t.prev}
+            </button>
+
+            {!isLast ? (
               <button
-                className="px-4 py-2 rounded-xl bg-black text-white"
-                onClick={()=>setQIdx(i=>Math.min(total-1,i+1))}
+                type="button"
+                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
+                onClick={onPress(next)}
+                onTouchEnd={onPress(next)}
                 disabled={picked == null}
               >
                 {t.next}
               </button>
             ) : (
               <button
-                className="px-4 py-2 rounded-xl bg-black text-white"
-                onClick={()=>{ try { onSubmit(); } catch(e) {} }}
-                disabled={picked == null}
+                type="button"
+                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
+                onClick={onPress(submitNow)}
+                onTouchEnd={onPress(submitNow)}
+                disabled={picked == null && answers.length === 0}
               >
                 {t.submit}
               </button>
@@ -460,7 +502,7 @@
       };
 
       function shareKakao() {
-        const key = "YOUR_KAKAO_JAVASCRIPT_KEY";
+        const key = "YOUR_KAKAO_JAVASCRIPT_KEY"; // 본인 키로 교체 + 도메인 등록 필요
         try {
           if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(key);
           if (window.Kakao?.Share && key !== "YOUR_KAKAO_JAVASCRIPT_KEY") {
