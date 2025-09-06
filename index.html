@@ -1,624 +1,673 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>BJJ 스타일 테스트</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>BJJ 스타일 테스트</title>
 
-  <!-- Social preview -->
-  <meta property="og:title" content="BJJ 스타일 테스트"/>
-  <meta property="og:description" content="세밀 문항으로 내 주짓수 스타일 매칭 + 스파이더차트"/>
-  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
-  <meta name="twitter:card" content="summary_large_image"/>
-  <meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
+    <meta property="og:title" content="BJJ 스타일 테스트"/>
+    <meta property="og:description" content="세밀 문항으로 내 주짓수 스타일 매칭 + 스파이더차트"/>
+    <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React + ReactDOM -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Kakao SDK (선택) -->
-  <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 
-  <style>
-    body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial }
-    .glass { backdrop-filter: blur(8px); }
-  </style>
+    <style>
+        body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial }
+        .glass { backdrop-filter: blur(8px); }
+    </style>
 </head>
 <body class="bg-gradient-to-b from-gray-50 to-white min-h-screen">
-  <div id="root"></div>
+    <div id="root"></div>
 
-  <!-- 중요: data-presets="env,react" -->
-  <script type="text/babel" data-presets="env,react">
-    const { useMemo, useState, useEffect, useRef } = React;
+    <script type="text/babel" data-presets="env,react">
+        const { useMemo, useState, useEffect, useRef } = React;
 
-    /* ================= Error Boundary ================ */
-    class ErrorBoundary extends React.Component {
-      constructor(props){ super(props); this.state={hasError:false, err:null}; }
-      static getDerivedStateFromError(err){ return {hasError:true, err}; }
-      componentDidCatch(err, info){ console.error("Render error:", err, info); }
-      render(){
-        if(!this.state.hasError) return this.props.children;
-        return (
-          <div className="p-4 border rounded-2xl bg-red-50 text-red-800">
-            <div className="font-bold mb-1">결과 표시 중 문제가 발생했어요.</div>
-            <div className="text-sm">그래도 테스트는 완료되었고, 하단 버튼으로 처음부터 다시 진행할 수 있습니다.</div>
-            {this.props.fallback}
-          </div>
-        );
-      }
-    }
-
-    /* ================= i18n ================= */
-    const STR = {
-      ko: { title:"주짓수 플레이 스타일 테스트", subtitle:"세밀한 문항으로 닮은 선수와 스파이더차트를 확인하세요.",
-        start:"시작하기", next:"다음", prev:"이전", submit:"결과 보기", restart:"다시 하기",
-        share:"링크 복사", yourResult:"당신과 닮은 스타일", shareVia:"공유하기", copied:"링크를 복사했습니다." },
-      en: { title:"BJJ Play-Style Test", subtitle:"Detailed questions for precise match + spider chart.",
-        start:"Start", next:"Next", prev:"Back", submit:"See Result", restart:"Restart",
-        share:"Copy Link", yourResult:"Your Matching Style", shareVia:"Share via", copied:"Link copied!" },
-      ja: { title:"BJJ スタイル診断", subtitle:"詳細な設問で精密マッチ＋レーダーチャート。",
-        start:"開始", next:"次へ", prev:"戻る", submit:"結果を見る", restart:"やり直す",
-        share:"リンクをコピー", yourResult:"あなたに近いスタイル", shareVia:"共有", copied:"リンクをコピーしました。" },
-    };
-    const SUPPORTED = ["ko","en","ja"];
-    function detectLang() {
-      const urlLang = new URLSearchParams(location.search).get("lang");
-      if (urlLang && SUPPORTED.includes(urlLang)) return urlLang;
-      const langs = navigator.languages || [navigator.language || "en"];
-      for (const l of langs) {
-        const code = (l||"").toLowerCase().split("-")[0];
-        if (SUPPORTED.includes(code)) return code;
-      }
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.includes("Seoul")) return "ko";
-      if (tz.includes("Tokyo")) return "ja";
-      return "en";
-    }
-
-    /* ================= 축 & 가중치 ================= */
-    const AXES = [
-      { key:"control",       label:{ko:"포지션 컨트롤",  en:"Positional Control", ja:"コントロール"} },
-      { key:"pressure",      label:{ko:"프레셔 패싱",    en:"Pressure Passing",    ja:"プレッシャー"} },
-      { key:"mobility",      label:{ko:"모빌리티 패싱",  en:"Mobility Passing",    ja:"モビリティ"} },
-      { key:"scramble",      label:{ko:"템포/스크램블",  en:"Tempo/Scramble",      ja:"テンポ/スクランブル"} },
-      { key:"leglock",       label:{ko:"레그락",         en:"Leglocks",            ja:"レッグロック"} },
-      { key:"berimbolo",     label:{ko:"베림보로",       en:"Berimbolo",           ja:"ベリンボロ"} },
-      { key:"lapel",         label:{ko:"라펠/웜",        en:"Lapel/Worm",          ja:"ラペル/ワーム"} },
-      { key:"fundamental",   label:{ko:"정석(기본기)",   en:"Fundamentals",        ja:"基礎"} },
-      { key:"wrestling",     label:{ko:"레슬/TD",        en:"Wrestling/TD",        ja:"レスリング/TD"} },
-      { key:"backtake",      label:{ko:"백 테이크",      en:"Back Takes",          ja:"バックテイク"} },
-      { key:"fronthead",     label:{ko:"프론트 헤드록",  en:"Front Headlock",      ja:"フロントヘッドロック"} },
-      { key:"guardret",      label:{ko:"가드 리텐션",    en:"Guard Retention",     ja:"ガードリテンション"} },
-      { key:"finish",        label:{ko:"피니시 지향",    en:"Finish Orientation",  ja:"フィニッシュ志向"} },
-    ];
-    const WEIGHTS = {
-      control:1.15, pressure:1.1, mobility:1.0, scramble:1.0,
-      leglock:1.2, berimbolo:0.9, lapel:0.9, fundamental:1.0,
-      wrestling:1.0, backtake:1.15, fronthead:1.0, guardret:1.0,
-      finish:1.15
-    };
-
-    /* ================= 이미지 폴백 ================= */
-    const PH = (name) =>
-      `data:image/svg+xml;charset=UTF-8,` +
-      encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
-        <defs><linearGradient id='g' x1='0' x2='1'><stop offset='0%' stop-color='#f3f4f6'/><stop offset='100%' stop-color='#e5e7eb'/></linearGradient></defs>
-        <rect width='100%' height='100%' fill='url(#g)'/>
-        <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='#6b7280' font-family='Arial, Helvetica, sans-serif'>${name}</text>
-      </svg>`);
-    function SmartImage({ srcs, alt, className }) {
-      const arr = Array.isArray(srcs) ? srcs.filter(Boolean) : [srcs];
-      const [idx, setIdx] = React.useState(0);
-      const curr = arr[idx] || PH(alt || "BJJ");
-      return (
-        <img
-          src={curr}
-          alt={alt}
-          referrerPolicy="no-referrer"
-          className={className}
-          onError={() => { if (idx < arr.length - 1) setIdx(idx + 1); else if (!curr.startsWith("data:")) setIdx(arr.length - 1); }}
-        />
-      );
-    }
-
-    /* ================= 선수 라인업 ================= */
-    const ATHLETES = [
-      { id:"gordon",   name:"Gordon Ryan",       img:["https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg/640px-ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg", PH("Gordon Ryan")],
-        traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
-      { id:"kaynan",   name:"Kaynan Duarte",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg/640px-Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg", PH("Kaynan Duarte")],
-        traits:["더블골드(ADCC’24)","압박+모빌리티","길로틴/프론트체인"], compliment:"균형 잡힌 파워/기술로 국면을 지배." },
-      { id:"mica",     name:"Mica Galvão",       img:["https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg/640px-Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg", PH("Mica Galvão")],
-        traits:["하이 템포","피니시 성향","77kg 강자"], compliment:"템포로 흔들고 피니시로 마무리." },
-      { id:"diogo",    name:"Diogo Reis",        img:["https://cdn.onefc.com/wp-content/uploads/2025/03/Diogo_Reis-Hero-1200x1165-1-768x746.jpg", PH("Diogo Reis")],
-        traits:["-66kg 강자","모빌리티","백테이크"], compliment:"민첩한 전환과 날카로운 백 게임." },
-      { id:"bodoni",   name:"Giancarlo Bodoni",  img:["https://cdn.onefc.com/wp-content/uploads/2024/12/GiancarloBodoni-1200X800.jpg", PH("Giancarlo Bodoni")],
-        traits:["-88kg 강자","체계적 패싱","컨트롤"], compliment:"정돈된 시퀀스로 안정적 우세를 쌓음." },
-      { id:"pena",     name:"Felipe Pena",       img:["https://images.tapology.com/letterbox_images/214308/default/Untitled17.jpg?1595596586", PH("Felipe Pena")],
-        traits:["+99kg 강자","백 컨트롤","전략 운영"], compliment:"전통과 현대가 섞인 안정적 피니셔." },
-      { id:"nickyrod", name:"Nick Rodriguez",    img:["https://d2779tscntxxsw.cloudfront.net/61ea28ee992bb.png?width=1800", PH("Nick Rodriguez")],
-        traits:["레슬/탑컨","스크램블","CJI 임팩트"], compliment:"레슬과 체력으로 상단에서 압박." },
-      { id:"craig",    name:"Craig Jones",       img:[null, PH("Craig Jones")],
-        traits:["레그락 시스템","K-가드","CJI 주역"], compliment:"합리적 레그 체인으로 기회를 창출." },
-      { id:"luke",     name:"Luke Griffith",     img:[null, PH("Luke Griffith")],
-        traits:["헤비급 강자","New Wave","상체 체인"], compliment:"견고한 컨트롤과 상체 체인." },
-      { id:"helena",   name:"Helena Crevar",     img:[null, PH("Helena Crevar")],
-        traits:["CJI 우승","다이나믹","서브미션 위협"], compliment:"젊은 에너지로 시종일관 공격 구사." },
-
-      { id:"meregali", name:"Nicholas Meregali", img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg", PH("Nicholas Meregali")],
-        traits:["기 강자","탑 컨트롤","서브미션"], compliment:"정석과 피지컬이 조화된 교본형." },
-      { id:"tainan",   name:"Tainan Dalpra",     img:[null, PH("Tainan Dalpra")],
-        traits:["기 테크니션","라인·각도","포지셔널"], compliment:"디테일로 공간을 만드는 테크니션." },
-      { id:"keenan",   name:"Keenan Cornelius",  img:[null, PH("Keenan Cornelius")],
-        traits:["라펠/웜","가드 전환","시스템"], compliment:"라펠 시스템으로 흐름을 설계." },
-      { id:"rafa",     name:"Rafael Mendes",     img:[null, PH("Rafael Mendes")],
-        traits:["DLR/베림보로","백테이크","페더 전설"], compliment:"정밀한 각도로 백을 장악하는 아티스트." },
-      { id:"cobrinha", name:"Rubens \"Cobrinha\" Charles", img:[null, PH("Cobrinha")],
-        traits:["가드 리텐션","백 위협","템포"], compliment:"리텐션-백 체인으로 상시 압박." },
-
-      { id:"mikey",    name:"Mikey Musumeci",    img:["https://upload.wikimedia.org/wikipedia/commons/8/83/Mikey_Musumeci_2019.jpg", PH("Mikey Musumeci")],
-        traits:["정교 디테일","라이트급","하이 가드IQ"], compliment:"디테일로 승부 보는 정밀 테크니션." },
-      { id:"tye",      name:"Tye Ruotolo",       img:["https://upload.wikimedia.org/wikipedia/commons/8/8c/Tye_Ruotolo_2022.jpg", PH("Tye Ruotolo")],
-        traits:["공격적 패싱","레슬/스크램블","다이나믹"], compliment:"탑에서 파고드는 공격성으로 흔듭니다." },
-      { id:"cade",     name:"Kade Ruotolo",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2d/Kade_Ruotolo_2022.jpg", PH("Kade Ruotolo")],
-        traits:["하이 템포","다스/프론트체인","다이나믹"], compliment:"끊임없는 템포로 압박하는 파이터." },
-      { id:"roger",    name:"Roger Gracie",      img:["https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg", PH("Roger Gracie")],
-        traits:["포지셔널 교과서","프레셔","정석 피니시"], compliment:"기본기로 경기를 지배하는 안정형." },
-      { id:"marcelo",  name:"Marcelo Garcia",    img:["https://upload.wikimedia.org/wikipedia/commons/7/72/Marcelo_Garcia_2009_ADCC.jpg", PH("Marcelo Garcia")],
-        traits:["버터플라이/엑스","스크램블","초크"], compliment:"타이밍 장인, 흐름 전환에 탁월." },
-    ];
-
-    /* ================= 프로필(스탯 정답값) ================= */
-    const PROFILES = {
-      gordon:  {control:9, pressure:7, mobility:6, scramble:5, leglock:10,berimbolo:1, lapel:0, fundamental:8, wrestling:6, backtake:8, fronthead:8, guardret:8, finish:9},
-      kaynan:  {control:9, pressure:8, mobility:7, scramble:7, leglock:4, berimbolo:2, lapel:2, fundamental:9, wrestling:8, backtake:8, fronthead:8, guardret:8, finish:7},
-      mica:    {control:7, pressure:6, mobility:8, scramble:9, leglock:6, berimbolo:3, lapel:0, fundamental:7, wrestling:7, backtake:8, fronthead:6, guardret:8, finish:9},
-      diogo:   {control:7, pressure:5, mobility:9, scramble:9, leglock:5, berimbolo:3, lapel:0, fundamental:8, wrestling:6, backtake:9, fronthead:5, guardret:9, finish:8},
-      bodoni:  {control:9, pressure:7, mobility:6, scramble:6, leglock:5, berimbolo:2, lapel:0, fundamental:9, wrestling:6, backtake:8, fronthead:6, guardret:8, finish:6},
-      pena:    {control:9, pressure:8, mobility:6, scramble:6, leglock:4, berimbolo:2, lapel:2, fundamental:9, wrestling:7, backtake:9, fronthead:5, guardret:8, finish:8},
-      nickyrod:{control:7, pressure:8, mobility:6, scramble:9, leglock:4, berimbolo:0, lapel:0, fundamental:7, wrestling:10,backtake:7, fronthead:7, guardret:7, finish:5},
-      craig:   {control:7, pressure:5, mobility:6, scramble:7, leglock:10,berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:7, fronthead:6, guardret:8, finish:9},
-      luke:    {control:8, pressure:7, mobility:6, scramble:6, leglock:5, berimbolo:1, lapel:0, fundamental:8, wrestling:7, backtake:7, fronthead:7, guardret:8, finish:6},
-      helena:  {control:7, pressure:5, mobility:7, scramble:8, leglock:6, berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:8, fronthead:5, guardret:8, finish:8},
-
-      meregali:{control:9, pressure:9, mobility:6, scramble:6, leglock:3, berimbolo:2, lapel:4, fundamental:9, wrestling:7, backtake:8, fronthead:4, guardret:8, finish:8},
-      tainan:  {control:9, pressure:7, mobility:7, scramble:6, leglock:3, berimbolo:3, lapel:6, fundamental:10,wrestling:6, backtake:8, fronthead:4, guardret:9, finish:7},
-      keenan:  {control:7, pressure:5, mobility:6, scramble:6, leglock:5, berimbolo:6, lapel:10,fundamental:8, wrestling:4, backtake:8, fronthead:4, guardret:9, finish:6},
-      rafa:    {control:8, pressure:6, mobility:8, scramble:8, leglock:4, berimbolo:9, lapel:6, fundamental:9, wrestling:6, backtake:10,fronthead:5, guardret:9, finish:9},
-      cobrinha:{control:8, pressure:7, mobility:8, scramble:9, leglock:4, berimbolo:6, lapel:5, fundamental:9, wrestling:6, backtake:9, fronthead:6, guardret:10, finish:8},
-
-      mikey:   {control:7, pressure:4, mobility:7, scramble:6, leglock:7, berimbolo:7, lapel:5, fundamental:9, wrestling:3, backtake:7, fronthead:4, guardret:9, finish:8},
-      tye:     {control:6, pressure:7, mobility:8, scramble:9, leglock:6, berimbolo:2, lapel:0, fundamental:7, wrestling:8, backtake:8, fronthead:7, guardret:7, finish:8},
-      cade:    {control:6, pressure:6, mobility:8, scramble:10,leglock:7, berimbolo:3, lapel:0, fundamental:6, wrestling:8, backtake:8, fronthead:8, guardret:7, finish:9},
-      roger:   {control:10,pressure:9, mobility:4, scramble:3, leglock:3, berimbolo:0, lapel:4, fundamental:10,wrestling:6, backtake:9, fronthead:4, guardret:8, finish:8},
-      marcelo: {control:6, pressure:5, mobility:7, scramble:9, leglock:4, berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7, finish:9},
-    };
-
-    /* ================= 문항 ================= */
-    const L = (ko,en)=>({ko,en});
-    const Q = []; let qid = 0;
-    function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
-
-    add("control", L("상위 포지션(사이드/마운트) 고정 능력은?", "Top position (side/mount) control?"),
-      [{label:L("매우 강함","Very strong"), val:10},{label:L("보통","Moderate"), val:6},{label:L("약함","Low"), val:2}]);
-    add("control", L("백 컨트롤에서 훅/시트벨트 유지력은?", "Back control retention?"),
-      [{label:L("매우 강함","Very strong"), val:10},{label:L("보통","Moderate"), val:6},{label:L("약함","Low"), val:2}]);
-
-    add("pressure", L("바디락/프레셔 패싱 비중은?", "Bodylock/pressure passing?"),
-      [{label:L("주 무기","Primary"), val:10},{label:L("상황별","Situational"), val:6},{label:L("드뭄","Rare"), val:2}]);
-    add("mobility", L("토레안도/롱스텝/레그드랙 등 모빌리티 패싱 비중은?", "Torreando/long-step/leg-drag mobility?"),
-      [{label:L("주 무기","Primary"), val:10},{label:L("상황별","Situational"), val:6},{label:L("드뭄","Rare"), val:2}]);
-
-    add("scramble", L("하이 템포 스크램블 선호?", "High-tempo scrambles preference?"),
-      [{label:L("매우 높음","Very high"), val:10},{label:L("보통","Balanced"), val:6},{label:L("낮음","Low"), val:2}]);
-
-    add("leglock", L("엔트리 다양성(Outside/Inside/K-Guard 등)은?", "Leg entry diversity (outside/inside/K-guard)?"),
-      [{label:L("다양/시스템적","Diverse/Systematic"), val:10},{label:L("기회형","Opportunistic"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-    add("leglock", L("레그락을 먼저 노리나요(레그→상체 전환 포함)?", "Initiate with legs (legs→upper transitions)?"),
-      [{label:L("자주","Often"), val:10},{label:L("상황별","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-
-    add("berimbolo", L("베림보로/변형 사용 빈도는?", "Berimbolo/variations frequency?"),
-      [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-
-    add("lapel", L("라펠/웜/라소 계열 사용 빈도는?(Gi)", "Lapel/Worm/Lasso usage (Gi)"),
-      [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-
-    add("fundamental", L("정석 콤보(암바/삼각/초크) 선호도는?", "Classic subs (armbar/triangle/choke)?"),
-      [{label:L("매우 높음","Very high"), val:10},{label:L("보통","Balanced"), val:6},{label:L("낮음","Low"), val:2}]);
-
-    add("wrestling", L("테이크다운 지향(노기 기준 포함)은?", "Takedown emphasis (incl. No-Gi)?"),
-      [{label:L("우선","First"), val:10},{label:L("상황별","Situational"), val:6},{label:L("거의 없음","Rare"), val:2}]);
-
-    add("backtake", L("가드/패스 중 백 테이크 전환 빈도는?", "Back-take transitions from guard/passing?"),
-      [{label:L("자주","Often"), val:10},{label:L("가끔","Sometimes"), val:6},{label:L("드뭄","Rare"), val:2}]);
-
-    add("fronthead", L("프론트 헤드록 체인(길로틴/다스) 활용도는?", "Front-headlock chain (Guillotine/D'Arce)?"),
-      [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
-
-    add("guardret", L("오픈가드 리텐션(리프레이밍/그란비)의 자신감은?", "Open-guard retention (reframing/granby)?"),
-      [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
-
-    add("finish", L("경기 운영 성향은?", "Match orientation?"),
-      [
-        { label: L("공격적 서브미션 추구", "Aggressive submission hunting"), val: 10 },
-        { label: L("포지션·포인트 우선", "Position/points first"), val: 2 },
-        { label: L("상황에 따라 조절", "Situational balance"), val: 6 }
-      ]
-    );
-
-    const QUESTIONS = Q;
-
-    /* ================= 스코어링 ================= */
-    function weightedCosine(a, b) {
-      let dot=0, na=0, nb=0;
-      for (const k of Object.keys(WEIGHTS)) {
-        const w=WEIGHTS[k]||1, x=(a[k]||0)*w, y=(b[k]||0)*w;
-        dot += x*y; na += x*x; nb += y*y;
-      }
-      return dot / (Math.sqrt(na||1)*Math.sqrt(nb||1));
-    }
-
-    /* ================= 결과 코멘트 ================= */
-    function buildAdvice(ax) {
-      const t=[];
-      if ((ax.finish||0)>=8) t.push("피니시 시퀀스를 표준화하세요: 엔트리→고정→피니시 전환을 체크리스트로.");
-      if ((ax.leglock||0)>=8) t.push("레그락 체인을 더 깊게: 다양한 엔트리와 반엔트리 대응을 루틴화.");
-      if ((ax.berimbolo||0)>=8) t.push("베림보로 각도·그립 디테일을 다듬고 백 고정을 반복.");
-      if ((ax.lapel||0)>=8) t.push("라펠 엔트리 후 스윕→백 연결 루틴을 상황별로 정형화.");
-      if ((ax.pressure||0)>=8) t.push("프레셔 패스에서 사이드→마운트 연결 디테일 고정.");
-      if ((ax.mobility||0)>=8) t.push("모빌리티 패스 뒤 백·마운트 전환 각도 명확화.");
-      if ((ax.wrestling||0)>=8) t.push("레슬 엔트리 실패 시 리커버리/리텐션 플로우 준비.");
-      if ((ax.backtake||0)>=8) t.push("탑/가드 모두에서 백 전환 타이밍을 체크리스트화.");
-      if ((ax.fronthead||0)>=8) t.push("프론트 헤드록에서 다스/아나콘다 변주 확장.");
-      if ((ax.guardret||0)>=8) t.push("리텐션→리빌드→카운터 엔트리 흐름을 시스템화.");
-      if (!t.length) t.push("현재는 균형형입니다. 룰·상대 스타일에 맞춰 강점 1~2축을 더 선명하게 가져가면 좋아요.");
-      return t;
-    }
-
-    /* ================= 공유 헬퍼 ================= */
-    function buildShareURL(platform, text, url) {
-      const t = encodeURIComponent(text), u = encodeURIComponent(url);
-      if (platform === "line")     return `https://line.me/R/msg/text/?${t}%20${u}`;
-      if (platform === "whatsapp") return `https://api.whatsapp.com/send?text=${t}%20${u}`;
-      if (platform === "facebook") return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
-      if (platform === "telegram") return `https://t.me/share/url?url=${u}&text=${t}`;
-      if (platform === "x")        return `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
-      if (platform === "sms")      return `sms:?&body=${t}%20${u}`;
-      return url;
-    }
-    function openShare(url) {
-      const w = window.open(url, "_blank", "noopener,noreferrer,width=600,height=700");
-      if (!w) location.href = url;
-    }
-
-    /* ================= App ================= */
-    function App() {
-      const [lang, setLang] = useState(detectLang());
-      const t = STR[lang] || STR.en;
-
-      const [step, setStep] = useState("intro");
-      const [qIdx, setQIdx] = useState(0);
-      const [answers, setAnswers] = useState([]);
-      const [shared, setShared] = useState(null);
-
-      useEffect(()=>{
-        const r = new URLSearchParams(location.search).get("r");
-        if (r) { try { const j = JSON.parse(atob(r)); if (j?.axes) { setShared(j); setStep("result"); } } catch(e){} }
-      },[]);
-
-      const axes = useMemo(()=>{
-        const sum = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
-        const cnt = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
-        if (shared?.axes) return shared.axes;
-        for (const a of answers) {
-          const q = QUESTIONS.find(x=>x.id===a.id);
-          if (q) { sum[q.axis]+=a.val; cnt[q.axis]+=1; }
+        /* ================= Error Boundary ================ */
+        class ErrorBoundary extends React.Component {
+            constructor(props){ super(props); this.state={hasError:false, err:null}; }
+            static getDerivedStateFromError(err){ return {hasError:true, err}; }
+            componentDidCatch(err, info){ console.error("Render error:", err, info); }
+            render(){
+                if(!this.state.hasError) return this.props.children;
+                return (
+                    <div className="p-4 border rounded-2xl bg-red-50 text-red-800">
+                        <div className="font-bold mb-1">결과 표시 중 문제가 발생했어요.</div>
+                        <div className="text-sm">그래도 테스트는 완료되었고, 하단 버튼으로 처음부터 다시 진행할 수 있습니다.</div>
+                        {this.props.fallback}
+                    </div>
+                );
+            }
         }
-        const acc = {};
-        for (const k of Object.keys(sum)) acc[k] = cnt[k] ? (sum[k]/cnt[k]) : 0;
-        return acc;
-      }, [answers, shared]);
 
-      const winner = useMemo(()=>{
-        let best=null, score=-1;
-        for (const at of ATHLETES) {
-          const prof = PROFILES[at.id];
-          if (!prof) continue;
-          const sim = weightedCosine(axes, prof);
-          if (sim > score || best==null) { score=sim; best=at; }
+        /* ================= i18n ================= */
+        const STR = {
+            ko: { title:"주짓수 플레이 스타일 테스트", subtitle:"세밀 문항으로 닮은 선수와 스파이더차트를 확인하세요.",
+                start:"시작하기", next:"다음", prev:"이전", submit:"결과 보기", restart:"다시 하기",
+                share:"링크 복사", yourResult:"당신과 닮은 스타일", shareVia:"공유하기", copied:"링크를 복사했습니다." },
+            en: { title:"BJJ Play-Style Test", subtitle:"Detailed questions for precise match + spider chart.",
+                start:"Start", next:"Next", prev:"Back", submit:"See Result", restart:"Restart",
+                share:"Copy Link", yourResult:"Your Matching Style", shareVia:"Share via", copied:"Link copied!" },
+            ja: { title:"BJJ スタイル診断", subtitle:"詳細な設問で精密マッチ＋レーダーチャート。",
+                start:"開始", next:"次へ", prev:"戻る", submit:"結果を見る", restart:"やり直す",
+                share:"リンクをコピー", yourResult:"あなたに近いスタイル", shareVia:"共有", copied:"リンクをコピーしました。" },
+        };
+        const SUPPORTED = ["ko","en","ja"];
+        function detectLang() {
+            const urlLang = new URLSearchParams(location.search).get("lang");
+            if (urlLang && SUPPORTED.includes(urlLang)) return urlLang;
+            const langs = navigator.languages || [navigator.language || "en"];
+            for (const l of langs) {
+                const code = (l||"").toLowerCase().split("-")[0];
+                if (SUPPORTED.includes(code)) return code;
+            }
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+            if (tz.includes("Seoul")) return "ko";
+            if (tz.includes("Tokyo")) return "ja";
+            return "en";
         }
-        return { at: best, sim: score };
-      }, [JSON.stringify(axes)]);
 
-      function pick(val) {
-        const q = QUESTIONS[qIdx];
-        if (!q) return;
-        const next = answers.filter(a=>a.id!==q.id).concat({id:q.id, val});
-        setAnswers(next);
-      }
+        /* ================= 축 & 가중치 ================= */
+        const AXES = [
+            { key:"control",       label:{ko:"포지션 컨트롤",  en:"Positional Control", ja:"コントロール"} },
+            { key:"pressure",      label:{ko:"프레셔 패싱",    en:"Pressure Passing",   ja:"プレッシャー"} },
+            { key:"mobility",      label:{ko:"모빌리티 패싱",  en:"Mobility Passing",   ja:"モビリティ"} },
+            { key:"scramble",      label:{ko:"템포/스크램블",  en:"Tempo/Scramble",     ja:"テンポ/スクランブル"} },
+            { key:"leglock",       label:{ko:"레그락",          en:"Leglocks",           ja:"レッグロック"} },
+            { key:"berimbolo",     label:{ko:"베림보로",        en:"Berimbolo",          ja:"ベリンボロ"} },
+            { key:"lapel",         label:{ko:"라펠/웜",        en:"Lapel/Worm",         ja:"ラペル/ワーム"} },
+            { key:"fundamental",   label:{ko:"정석(기본기)",    en:"Fundamentals",       ja:"基礎"} },
+            { key:"wrestling",     label:{ko:"레슬/TD",        en:"Wrestling/TD",       ja:"レスリング/TD"} },
+            { key:"backtake",      label:{ko:"백 테이크",      en:"Back Takes",         ja:"バックテイク"} },
+            { key:"fronthead",     label:{ko:"프론트 헤드록",  en:"Front Headlock",     ja:"フロントヘッドロック"} },
+            { key:"guardret",      label:{ko:"가드 리텐션",    en:"Guard Retention",    ja:"ガードリテンション"} },
+            { key:"finish",        label:{ko:"피니시 지향",    en:"Finish Orientation", ja:"フィニッシュ志向"} },
+        ];
+        const WEIGHTS = {
+            control:1.15, pressure:1.1, mobility:1.0, scramble:1.0,
+            leglock:1.2, berimbolo:0.9, lapel:0.9, fundamental:1.0,
+            wrestling:1.0, backtake:1.15, fronthead:1.0, guardret:1.0,
+            finish:1.15
+        };
 
-      return (
-        <div className="max-w-5xl mx-auto px-4 py-10">
-          <header className="text-center mb-8">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">{t.title}</h1>
-            <p className="text-gray-600 mt-2">{t.subtitle}</p>
-          </header>
-
-          <main className="rounded-3xl shadow-xl bg-white p-6 md:p-10 glass">
-            {step==="intro" && (
-              <div className="text-center">
-                <div className="mt-3 inline-flex items-center gap-2 text-sm text-gray-500">
-                  <span>Language</span>
-                  <select className="border rounded-xl px-3 py-2" value={lang} onChange={(e)=>setLang(e.target.value)}>
-                    {Object.keys(STR).map(k=>(<option key={k} value={k}>{k}</option>))}
-                  </select>
-                </div>
-                <button className="mt-6 md:mt-8 px-6 py-3 rounded-2xl bg-black text-white hover:opacity-90 transition"
-                        onClick={()=>setStep("quiz")}>{t.start}</button>
-              </div>
-            )}
-
-            {step==="quiz" && (
-              <Quiz
-                lang={lang} t={t}
-                qIdx={qIdx} setQIdx={setQIdx}
-                answers={answers} pick={pick}
-                onSubmit={()=>setStep("result")}
-              />
-            )}
-
-            {step==="result" && (
-              <ErrorBoundary fallback={<div className="mt-3"><button className="mt-2 px-4 py-2 rounded-xl border" onClick={()=>{setStep("intro");setQIdx(0);setAnswers([]);setShared(null);}}>다시 하기</button></div>}>
-                <Result
-                  lang={lang} t={t}
-                  axes={axes} winner={winner?.at}
-                  onRestart={()=>{ setStep("intro"); setQIdx(0); setAnswers([]); setShared(null); }}
+        /* ================= 이미지 폴백 ================= */
+        const PH = (name) =>
+            `data:image/svg+xml;charset=UTF-8,` +
+            encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
+                <defs><linearGradient id='g' x1='0' x2='1'><stop offset='0%' stop-color='#f3f4f6'/><stop offset='100%' stop-color='#e5e7eb'/></linearGradient></defs>
+                <rect width='100%' height='100%' fill='url(#g)'/>
+                <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='#6b7280' font-family='Arial, Helvetica, sans-serif'>${name}</text>
+            </svg>`);
+        function SmartImage({ srcs, alt, className }) {
+            const arr = Array.isArray(srcs) ? srcs.filter(Boolean) : [srcs];
+            const [idx, setIdx] = React.useState(0);
+            const curr = arr[idx] || PH(alt || "BJJ");
+            return (
+                <img
+                    src={curr}
+                    alt={alt}
+                    referrerPolicy="no-referrer"
+                    className={className}
+                    onError={() => { if (idx < arr.length - 1) setIdx(idx + 1); else if (!curr.startsWith("data:")) setIdx(arr.length - 1); }}
                 />
-              </ErrorBoundary>
-            )}
-
-            <p className="text-xs text-gray-400 mt-6">© MK Corporation</p>
-          </main>
-        </div>
-      );
-    }
-
-    /* ================= 안정화된 Quiz ================= */
-    function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
-      const total = QUESTIONS.length;
-      const q = QUESTIONS[qIdx];
-      if (!q) return null;
-
-      const picked = answers.find(a => a.id === q.id)?.val;
-      const pct = Math.round(((qIdx + 1) / total) * 100);
-      const isLast = qIdx === total - 1;
-
-      function submitNow() {
-        try {
-          const hasAnyAnswer = answers.length > 0;
-          if (picked == null && !hasAnyAnswer) return;
-          onSubmit();
-          requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-        } catch (e) { onSubmit(); }
-      }
-      function next() { setQIdx(i => Math.min(total - 1, i + 1)); }
-      function prev() { setQIdx(i => Math.max(0, i - 1)); }
-      function onPress(handler) { return (ev) => { ev.preventDefault(); handler(); }; }
-
-      useEffect(() => {
-        function onKey(e) {
-          if (e.key === "Enter") {
-            if (!isLast && picked != null) next();
-            else if (isLast && picked != null) submitNow();
-          }
+            );
         }
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-      }, [isLast, picked]);
 
-      return (
-        <div>
-          <div className="w-full">
-            <div className="flex justify-between text-sm text-gray-500 mb-1">
-              <span>Q{qIdx + 1}</span>
-              <span>{pct}%</span>
-            </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-black/80" style={{ width: pct + "%" }} />
-            </div>
-          </div>
+        /* ================= 선수 라인업 ================= */
+        const ATHLETES = [
+            { id:"gordon",   name:"Gordon Ryan",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg/640px-ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg", PH("Gordon Ryan")],
+                traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
+            { id:"kaynan",   name:"Kaynan Duarte",   img:["https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg/640px-Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg", PH("Kaynan Duarte")],
+                traits:["더블골드(ADCC’24)","압박+모빌리티","길로틴/프론트체인"], compliment:"균형 잡힌 파워/기술로 국면을 지배." },
+            { id:"mica",     name:"Mica Galvão",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg/640px-Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg", PH("Mica Galvão")],
+                traits:["하이 템포","피니시 성향","77kg 강자"], compliment:"템포로 흔들고 피니시로 마무리." },
+            { id:"diogo",    name:"Diogo Reis",      img:["https://cdn.onefc.com/wp-content/uploads/2025/03/Diogo_Reis-Hero-1200x1165-1-768x746.jpg", PH("Diogo Reis")],
+                traits:["-66kg 강자","모빌리티","백테이크"], compliment:"민첩한 전환과 날카로운 백 게임." },
+            { id:"bodoni",   name:"Giancarlo Bodoni",img:["https://cdn.onefc.com/wp-content/uploads/2024/12/GiancarloBodoni-1200X800.jpg", PH("Giancarlo Bodoni")],
+                traits:["-88kg 강자","체계적 패싱","컨트롤"], compliment:"정돈된 시퀀스로 안정적 우세를 쌓음." },
+            { id:"pena",     name:"Felipe Pena",     img:["https://images.tapology.com/letterbox_images/214308/default/Untitled17.jpg?1595596586", PH("Felipe Pena")],
+                traits:["+99kg 강자","백 컨트롤","전략 운영"], compliment:"전통과 현대가 섞인 안정적 피니셔." },
+            { id:"nickyrod", name:"Nick Rodriguez",  img:["https://d2779tscntxxsw.cloudfront.net/61ea28ee992bb.png?width=1800", PH("Nick Rodriguez")],
+                traits:["레슬/탑컨","스크램블","CJI 임팩트"], compliment:"레슬과 체력으로 상단에서 압박." },
+            { id:"craig",    name:"Craig Jones",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Craig_Jones.jpg/640px-Craig_Jones.jpg", PH("Craig Jones")],
+                traits:["레그락 시스템","K-가드","CJI 주역"], compliment:"합리적 레그 체인으로 기회를 창출." },
+            { id:"luke",     name:"Luke Griffith",   img:["https://d2779tscntxxsw.cloudfront.net/63503a277914f.png?width=1800", PH("Luke Griffith")],
+                traits:["헤비급 강자","New Wave","상체 체인"], compliment:"견고한 컨트롤과 상체 체인." },
+            { id:"helena",   name:"Helena Crevar",   img:["https://d2779tscntxxsw.cloudfront.net/6443c2c2ef72f.png?width=1800", PH("Helena Crevar")],
+                traits:["CJI 우승","다이나믹","서브미션 위협"], compliment:"젊은 에너지로 시종일관 공격 구사." },
 
-          <h2 className="text-xl md:text-2xl font-bold mt-6">{q.text[lang] || q.text.en}</h2>
+            { id:"meregali", name:"Nicholas Meregali", img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg", PH("Nicholas Meregali")],
+                traits:["기 강자","탑 컨트롤","서브미션"], compliment:"정석과 피지컬이 조화된 교본형." },
+            { id:"tainan",   name:"Tainan Dalpra",   img:["https://d2779tscntxxsw.cloudfront.net/60b94c34a4ab5.png?width=1800", PH("Tainan Dalpra")],
+                traits:["기 테크니션","라인·각도","포지셔널"], compliment:"디테일로 공간을 만드는 테크니션." },
+            { id:"keenan",   name:"Keenan Cornelius", img:["https://d2779tscntxxsw.cloudfront.net/60b94e820c229.png?width=1800", PH("Keenan Cornelius")],
+                traits:["라펠/웜","가드 전환","시스템"], compliment:"라펠 시스템으로 흐름을 설계." },
+            { id:"rafa",     name:"Rafael Mendes",   img:["https://upload.wikimedia.org/wikipedia/commons/b/b5/Rafael_Mendes_2011_ADCC_%28cropped%29.jpg", PH("Rafael Mendes")],
+                traits:["DLR/베림보로","백테이크","페더 전설"], compliment:"정밀한 각도로 백을 장악하는 아티스트." },
+            { id:"cobrinha", name:"Rubens \"Cobrinha\" Charles", img:["https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Rubens_Charles_%22Cobrinha%22.jpg/640px-Rubens_Charles_%22Cobrinha%22.jpg", PH("Cobrinha")],
+                traits:["가드 리텐션","백 위협","템포"], compliment:"리텐션-백 체인으로 상시 압박." },
 
-          <div className="grid gap-3 mt-4">
-            {q.options.map((opt, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => pick(opt.val)}
-                onTouchEnd={() => pick(opt.val)}
-                className={
-                  "text-left border rounded-2xl p-4 transition " +
-                  (picked === opt.val
-                    ? "border-black bg-black text-white"
-                    : "border-gray-200 hover:border-black")
+            { id:"mikey",    name:"Mikey Musumeci",  img:["https://upload.wikimedia.org/wikipedia/commons/8/83/Mikey_Musumeci_2019.jpg", PH("Mikey Musumeci")],
+                traits:["정교 디테일","라이트급","하이 가드IQ"], compliment:"디테일로 승부 보는 정밀 테크니션." },
+            { id:"tye",      name:"Tye Ruotolo",     img:["https://upload.wikimedia.org/wikipedia/commons/8/8c/Tye_Ruotolo_2022.jpg", PH("Tye Ruotolo")],
+                traits:["공격적 패싱","레슬/스크램블","다이나믹"], compliment:"탑에서 파고드는 공격성으로 흔듭니다." },
+            { id:"cade",     name:"Kade Ruotolo",    img:["https://upload.wikimedia.org/wikipedia/commons/2/2d/Kade_Ruotolo_2022.jpg", PH("Kade Ruotolo")],
+                traits:["하이 템포","다스/프론트체인","다이나믹"], compliment:"끊임없는 템포로 압박하는 파이터." },
+            { id:"roger",    name:"Roger Gracie",    img:["https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg", PH("Roger Gracie")],
+                traits:["포지셔널 교과서","프레셔","정석 피니시"], compliment:"기본기로 경기를 지배하는 안정형." },
+            { id:"marcelo",  name:"Marcelo Garcia",  img:["https://upload.wikimedia.org/wikipedia/commons/7/72/Marcelo_Garcia_2009_ADCC.jpg", PH("Marcelo Garcia")],
+                traits:["버터플라이/엑스","스크램블","초크"], compliment:"타이밍 장인, 흐름 전환에 탁월." },
+        ];
+
+        /* ================= 프로필(스탯 정답값) ================= */
+        const PROFILES = {
+            gordon:   {control:9, pressure:8, mobility:7, scramble:6, leglock:10, berimbolo:1, lapel:0, fundamental:8, wrestling:8, backtake:9, fronthead:8, guardret:8, finish:9},
+            kaynan:   {control:9, pressure:9, mobility:8, scramble:7, leglock:5,  berimbolo:2, lapel:2, fundamental:9, wrestling:8, backtake:8, fronthead:9, guardret:8, finish:7},
+            mica:     {control:7, pressure:6, mobility:8, scramble:9, leglock:6,  berimbolo:3, lapel:0, fundamental:7, wrestling:7, backtake:8, fronthead:9, guardret:8, finish:9},
+            diogo:    {control:7, pressure:5, mobility:9, scramble:9, leglock:5,  berimbolo:3, lapel:0, fundamental:8, wrestling:6, backtake:9, fronthead:5, guardret:9, finish:8},
+            bodoni:   {control:9, pressure:8, mobility:6, scramble:6, leglock:5,  berimbolo:2, lapel:0, fundamental:9, wrestling:6, backtake:8, fronthead:6, guardret:8, finish:6},
+            pena:     {control:9, pressure:8, mobility:6, scramble:6, leglock:4,  berimbolo:2, lapel:2, fundamental:9, wrestling:7, backtake:9, fronthead:5, guardret:8, finish:8},
+            nickyrod: {control:7, pressure:8, mobility:6, scramble:9, leglock:4,  berimbolo:0, lapel:0, fundamental:7, wrestling:10,backtake:7, fronthead:7, guardret:7, finish:5},
+            craig:    {control:7, pressure:5, mobility:6, scramble:7, leglock:10, berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:7, fronthead:6, guardret:8, finish:9},
+            luke:     {control:8, pressure:7, mobility:6, scramble:6, leglock:5,  berimbolo:1, lapel:0, fundamental:8, wrestling:7, backtake:7, fronthead:7, guardret:8, finish:6},
+            helena:   {control:7, pressure:5, mobility:7, scramble:8, leglock:6,  berimbolo:3, lapel:0, fundamental:7, wrestling:5, backtake:8, fronthead:5, guardret:8, finish:8},
+
+            meregali: {control:9, pressure:9, mobility:6, scramble:6, leglock:3,  berimbolo:2, lapel:4, fundamental:9, wrestling:7, backtake:8, fronthead:4, guardret:8, finish:8},
+            tainan:   {control:9, pressure:7, mobility:7, scramble:6, leglock:3,  berimbolo:3, lapel:6, fundamental:10,wrestling:6, backtake:8, fronthead:4, guardret:9, finish:7},
+            keenan:   {control:7, pressure:5, mobility:6, scramble:6, leglock:5,  berimbolo:6, lapel:10,fundamental:8, wrestling:4, backtake:8, fronthead:4, guardret:9, finish:6},
+            rafa:     {control:8, pressure:6, mobility:8, scramble:8, leglock:4,  berimbolo:9, lapel:6, fundamental:9, wrestling:6, backtake:10,fronthead:5, guardret:9, finish:9},
+            cobrinha: {control:8, pressure:7, mobility:8, scramble:9, leglock:4,  berimbolo:6, lapel:5, fundamental:9, wrestling:6, backtake:9, fronthead:6, guardret:10, finish:8},
+
+            mikey:    {control:7, pressure:4, mobility:7, scramble:6, leglock:7,  berimbolo:7, lapel:5, fundamental:9, wrestling:3, backtake:7, fronthead:4, guardret:9, finish:8},
+            tye:      {control:6, pressure:7, mobility:8, scramble:9, leglock:6,  berimbolo:2, lapel:0, fundamental:7, wrestling:8, backtake:8, fronthead:9, guardret:7, finish:8},
+            cade:     {control:6, pressure:6, mobility:8, scramble:10,leglock:7,  berimbolo:3, lapel:0, fundamental:6, wrestling:8, backtake:8, fronthead:9, guardret:7, finish:9},
+            roger:    {control:10,pressure:9, mobility:4, scramble:3, leglock:3,  berimbolo:0, lapel:4, fundamental:10,wrestling:6, backtake:9, fronthead:4, guardret:8, finish:8},
+            marcelo:  {control:6, pressure:5, mobility:7, scramble:9, leglock:4,  berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7, finish:9},
+        };
+
+        /* ================= 문항 ================= */
+        const L = (ko,en,ja)=>({ko,en,ja});
+        const Q = []; let qid = 0;
+        function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
+
+        add("control", L("상위 포지션(사이드/마운트) 고정 능력은?", "Top position (side/mount) control?", "トップポジション（サイド/マウント）のコントロール力は？"),
+            [{label:L("매우 강함","Very strong","非常に強い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("약함","Low","弱い"), val:0}]);
+        add("control", L("백 컨트롤에서 훅/시트벨트 유지력은?", "Back control retention?", "バックコントロールでのフック/シートベルトの維持力は？"),
+            [{label:L("매우 강함","Very strong","非常に強い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("약함","Low","弱い"), val:0}]);
+
+        add("pressure", L("바디락/프레셔 패싱 비중은?", "Bodylock/pressure passing?", "ボディロック/プレッシャーパスの割合は？"),
+            [{label:L("주 무기","Primary","得意技"), val:10},{label:L("상황별","Situational","状況に応じて"), val:5},{label:L("드뭄","Rare","めったにない"), val:0}]);
+        add("mobility", L("토레안도/롱스텝/레그드랙 등 모빌리티 패싱 비중은?", "Torreando/long-step/leg-drag mobility?", "トリアンド/ロングステップ/レッグドラッグなど、モビリティパスの割合は？"),
+            [{label:L("주 무기","Primary","得意技"), val:10},{label:L("상황별","Situational","状況に応じて"), val:5},{label:L("드뭄","Rare","めったにない"), val:0}]);
+
+        add("scramble", L("하이 템포 스크램블 선호?", "High-tempo scrambles preference?", "ハイスクラブルの好みは？"),
+            [{label:L("매우 높음","Very high","非常に高い"), val:10},{label:L("보통","Balanced","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
+
+        add("leglock", L("엔트리 다양성(Outside/Inside/K-Guard 등)은?", "Leg entry diversity (outside/inside/K-guard)?", "レッグエントリーの多様性（アウトサイド/インサイド/Kガードなど）は？"),
+            [{label:L("다양/시스템적","Diverse/Systematic","多様/体系的"), val:10},{label:L("기회형","Opportunistic","機会主義的"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
+        add("leglock", L("레그락을 먼저 노리나요(레그→상체 전환 포함)?", "Initiate with legs (legs→upper transitions)?", "まずレッグロックを狙いますか？（レッグから上半身への移行も含む）"),
+            [{label:L("자주","Often","よくある"), val:10},{label:L("상황별","Sometimes","状況に応じて"), val:5},{label:L("거의 없음","Rare","めったにない"), val:0}]);
+
+        add("berimbolo", L("베림보로/변형 사용 빈도는?", "Berimbolo/variations frequency?", "ベリンボロ/バリエーションの使用頻度は？"),
+            [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
+
+        add("lapel", L("라펠/웜/라소 계열 사용 빈도는?(Gi)", "Lapel/Worm/Lasso usage (Gi)?", "ラペル/ワーム/ラッソ系の使用頻度は？（Gi）"),
+            [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
+
+        add("fundamental", L("정석 콤보(암바/삼각/초크) 선호도는?", "Classic subs (armbar/triangle/choke)?", "定番のサブミッション（アームバー/三角絞め/チョーク）の好みは？"),
+            [{label:L("매우 높음","Very high","非常に高い"), val:10},{label:L("보통","Balanced","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
+
+        add("wrestling", L("테이크다운 지향(노기 기준 포함)은?", "Takedown emphasis (incl. No-Gi)?", "テイクダウン志向（No-Giも含む）は？"),
+            [{label:L("우선","First","優先"), val:10},{label:L("상황별","Situational","状況に応じて"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
+
+        add("backtake", L("가드/패스 중 백 테이크 전환 빈도는?", "Back-take transitions from guard/passing?", "ガード/パス中のバックテイクへの移行頻度は？"),
+            [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("드뭄","Rare","めったにない"), val:0}]);
+
+        add("fronthead", L("프론트 헤드록 체인(길로틴/다스) 활용도는?", "Front-headlock chain (Guillotine/D'Arce)?", "フロントヘッドロックチェーン（ギロチン/ダース）の活用度は？"),
+            [{label:L("높음","High","高い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
+
+        add("guardret", L("오픈가드 리텐션(리프레이밍/그란비)의 자신감은?", "Open-guard retention (reframing/granby)?", "オープンガードリテンション（リフレーミング/グランビー）への自信は？"),
+            [{label:L("높음","High","高い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
+
+        add("finish", L("경기 운영 성향은?", "Match orientation?", "試合の運営傾向は？"),
+            [
+                { label: L("공격적 서브미션 추구", "Aggressive submission hunting", "積極的なサブミッション狙い"), val: 10 },
+                { label: L("포지션·포인트 우선", "Position/points first", "ポジション/ポイント優先"), val: 0 },
+                { label: L("상황에 따라 조절", "Situational balance", "状況に応じて調整"), val: 5 }
+            ]
+        );
+
+        const QUESTIONS = Q;
+
+        /* ================= 스코어링 ================= */
+        function weightedCosine(a, b) {
+            let dot=0, na=0, nb=0;
+            for (const k of Object.keys(WEIGHTS)) {
+                const w=WEIGHTS[k]||1, x=(a[k]||0)*w, y=(b[k]||0)*w;
+                dot += x*y; na += x*x; nb += y*y;
+            }
+            return dot / (Math.sqrt(na||1)*Math.sqrt(nb||1));
+        }
+
+        /* ================= 결과 코멘트 ================= */
+        function buildAdvice(ax) {
+            const t=[];
+            if ((ax.finish||0)>=8) t.push("피니시 시퀀스를 표준화하세요: 엔트리→고정→피니시 전환을 체크리스트로.");
+            if ((ax.leglock||0)>=8) t.push("레그락 체인을 더 깊게: 다양한 엔트리와 반엔트리 대응을 루틴화.");
+            if ((ax.berimbolo||0)>=8) t.push("베림보로 각도·그립 디테일을 다듬고 백 고정을 반복.");
+            if ((ax.lapel||0)>=8) t.push("라펠 엔트리 후 스윕→백 연결 루틴을 상황별로 정형화.");
+            if ((ax.pressure||0)>=8) t.push("프레셔 패스에서 사이드→마운트 연결 디테일 고정.");
+            if ((ax.mobility||0)>=8) t.push("모빌리티 패스 뒤 백·마운트 전환 각도 명확화.");
+            if ((ax.wrestling||0)>=8) t.push("레슬 엔트리 실패 시 리커버리/리텐션 플로우 준비.");
+            if ((ax.backtake||0)>=8) t.push("탑/가드 모두에서 백 전환 타이밍을 체크리스트화.");
+            if ((ax.fronthead||0)>=8) t.push("프론트 헤드록에서 다스/아나콘다 변주 확장.");
+            if ((ax.guardret||0)>=8) t.push("리텐션→리빌드→카운터 엔트리 흐름을 시스템화.");
+            if (!t.length) t.push("현재는 균형형입니다. 룰·상대 스타일에 맞춰 강점 1~2축을 더 선명하게 가져가면 좋아요.");
+            return t;
+        }
+
+        /* ================= 공유 헬퍼 ================= */
+        function buildShareURL(platform, text, url) {
+            const t = encodeURIComponent(text), u = encodeURIComponent(url);
+            if (platform === "line")      return `https://line.me/R/msg/text/?${t}%20${u}`;
+            if (platform === "whatsapp") return `https://api.whatsapp.com/send?text=${t}%20${u}`;
+            if (platform === "facebook") return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+            if (platform === "telegram") return `https://t.me/share/url?url=${u}&text=${t}`;
+            if (platform === "x")        return `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
+            if (platform === "sms")      return `sms:?&body=${t}%20${u}`;
+            return url;
+        }
+        function openShare(url) {
+            const w = window.open(url, "_blank", "noopener,noreferrer,width=600,height=700");
+            if (!w) location.href = url;
+        }
+
+        /* ================= App ================= */
+        function App() {
+            const [lang, setLang] = useState(detectLang());
+            const t = STR[lang] || STR.en;
+
+            const [step, setStep] = useState("intro");
+            const [qIdx, setQIdx] = useState(0);
+            const [answers, setAnswers] = useState([]);
+            const [shared, setShared] = useState(null);
+
+            useEffect(()=>{
+                const r = new URLSearchParams(location.search).get("r");
+                if (r) { try { const j = JSON.parse(atob(r)); if (j?.axes) { setShared(j); setStep("result"); } } catch(e){} }
+            },[]);
+
+            const axes = useMemo(()=>{
+                const sum = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
+                const cnt = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
+                if (shared?.axes) return shared.axes;
+                for (const a of answers) {
+                    const q = QUESTIONS.find(x=>x.id===a.id);
+                    if (q) { sum[q.axis]+=a.val; cnt[q.axis]+=1; }
                 }
-              >
-                {opt.label[lang] || opt.label.en}
-              </button>
-            ))}
-          </div>
+                const acc = {};
+                for (const k of Object.keys(sum)) acc[k] = cnt[k] ? (sum[k]/cnt[k]) : 0;
+                return acc;
+            }, [answers, shared]);
 
-          <div className="flex justify-between mt-6">
-            <button
-              type="button"
-              className="px-4 py-2 rounded-xl border border-gray-300"
-              onClick={onPress(prev)}
-              onTouchEnd={onPress(prev)}
-              disabled={qIdx === 0}
-            >
-              {t.prev}
-            </button>
+            const winner = useMemo(()=>{
+                let best=null, score=-1;
+                for (const at of ATHLETES) {
+                    const prof = PROFILES[at.id];
+                    if (!prof) continue;
+                    const sim = weightedCosine(axes, prof);
+                    if (sim > score || best==null) { score=sim; best=at; }
+                }
+                return { at: best, sim: score };
+            }, [JSON.stringify(axes)]);
 
-            {!isLast ? (
-              <button
-                type="button"
-                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
-                onClick={onPress(next)}
-                onTouchEnd={onPress(next)}
-                disabled={picked == null}
-              >
-                {t.next}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
-                onClick={onPress(submitNow)}
-                onTouchEnd={onPress(submitNow)}
-                disabled={picked == null && answers.length === 0}
-              >
-                {t.submit}
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
+            function pick(val) {
+                const q = QUESTIONS[qIdx];
+                if (!q) return;
+                const next = answers.filter(a=>a.id!==q.id).concat({id:q.id, val});
+                setAnswers(next);
+            }
 
-    /* ================= 결과 ================= */
-    function Result({ t, lang, axes, winner, onRestart }) {
-      // 최후의 안전장치: winner가 없다면 0번 선수로 폴백
-      const pickedAth = winner || ATHLETES[0];
-      const safeAth = pickedAth || { id:"unknown", name:"Unknown", img:[PH("Unknown")], traits:[], compliment:"" };
+            return (
+                <div className="max-w-5xl mx-auto px-4 py-10">
+                    <header className="text-center mb-8">
+                        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">{t.title}</h1>
+                        <p className="text-gray-600 mt-2">{t.subtitle}</p>
+                    </header>
 
-      // 공유 URL(언어 포함)
-      const payload = { axes, winner: safeAth.id, ts: Date.now() };
-      const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
-      const text = (STR[lang]?.title || STR.en.title) + " — " + (safeAth.name || "");
+                    <main className="rounded-3xl shadow-xl bg-white p-6 md:p-10 glass">
+                        {step==="intro" && (
+                            <div className="text-center">
+                                <div className="mt-3 inline-flex items-center gap-2 text-sm text-gray-500">
+                                    <span>Language</span>
+                                    <select className="border rounded-xl px-3 py-2" value={lang} onChange={(e)=>setLang(e.target.value)}>
+                                        {Object.keys(STR).map(k=>(<option key={k} value={k}>{k}</option>))}
+                                    </select>
+                                </div>
+                                <button className="mt-6 md:mt-8 px-6 py-3 rounded-2xl bg-black text-white hover:opacity-90 transition"
+                                        onClick={()=>setStep("quiz")}>{t.start}</button>
+                            </div>
+                        )}
 
-      const SHARE = {
-        line:      buildShareURL("line", text, url),
-        whatsapp:  buildShareURL("whatsapp", text, url),
-        facebook:  buildShareURL("facebook", text, url),
-        telegram:  buildShareURL("telegram", text, url),
-        x:         buildShareURL("x", text, url),
-        sms:       buildShareURL("sms", text, url),
-      };
+                        {step==="quiz" && (
+                            <Quiz
+                                lang={lang} t={t}
+                                qIdx={qIdx} setQIdx={setQIdx}
+                                answers={answers} pick={pick}
+                                onSubmit={()=>setStep("result")}
+                            />
+                        )}
 
-      function shareKakao() {
-        const key = "6293a9061e25a8cfabaecddf8b4b4d1e"; // 본인 키로 교체 + 도메인 등록 필요
-        try {
-          if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(key);
-          if (window.Kakao?.Share && key !== "YOUR_KAKAO_JAVASCRIPT_KEY") {
-            window.Kakao.Share.sendDefault({
-              objectType:'feed',
-              content:{ title: STR[lang]?.title || STR.en.title, description: safeAth?.name || "",
-                        imageUrl:"https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg",
-                        link:{ mobileWebUrl:url, webUrl:url } },
-              buttons:[{ title:'열어보기', link:{ mobileWebUrl:url, webUrl:url } }]
-            });
-            return;
-          }
-        } catch(e){}
-        navigator.clipboard?.writeText(url);
-        alert(STR[lang]?.copied || STR.en.copied);
-      }
+                        {step==="result" && (
+                            <ErrorBoundary fallback={<div className="mt-3"><button className="mt-2 px-4 py-2 rounded-xl border" onClick={()=>{setStep("intro");setQIdx(0);setAnswers([]);setShared(null);}}>다시 하기</button></div>}>
+                                <Result
+                                    lang={lang} t={t}
+                                    axes={axes} winner={winner?.at}
+                                    onRestart={()=>{ setStep("intro"); setQIdx(0); setAnswers([]); setShared(null); }}
+                                />
+                            </ErrorBoundary>
+                        )}
 
-      function shareNative() {
-        if (navigator.share) {
-          navigator.share({ title: document.title, text: text, url }).catch(()=>{});
-        } else {
-          navigator.clipboard?.writeText(url);
-          alert(STR[lang]?.copied || STR.en.copied);
+                        <p className="text-xs text-gray-400 mt-6">© MK Corporation</p>
+                    </main>
+                </div>
+            );
         }
-      }
-      function copyLink() {
-        navigator.clipboard?.writeText(url);
-        alert(STR[lang]?.copied || STR.en.copied);
-      }
 
-      return (
-        <div>
-          <h2 className="text-xl md:text-2xl font-extrabold">{t.yourResult}</h2>
+        /* ================= 안정화된 Quiz ================= */
+        function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
+            const total = QUESTIONS.length;
+            const q = QUESTIONS[qIdx];
+            if (!q) return null;
 
-          <div className="grid md:grid-cols-2 gap-6 items-center mt-4">
-            <SmartImage srcs={safeAth.img} alt={safeAth.name} className="w-full rounded-2xl shadow-md object-cover" />
-            <div>
-              <h3 className="text-2xl font-bold">{safeAth.name}</h3>
-              <ul className="mt-2 list-disc list-inside text-gray-700">
-                {(safeAth.traits || []).map((tr,i)=>(<li key={i}>{tr}</li>))}
-              </ul>
-              {safeAth.compliment && <p className="mt-3 font-medium">{safeAth.compliment}</p>}
+            const picked = answers.find(a => a.id === q.id)?.val;
+            const pct = Math.round(((qIdx + 1) / total) * 100);
+            const isLast = qIdx === total - 1;
 
-              <div className="mt-4">
-                <div className="text-sm text-gray-600 mb-2">{t.shareVia}</div>
-                <div className="flex flex-wrap gap-2">
-                  <a className="px-3 py-2 rounded-xl bg-[#FEE500] text-black" href="#" onClick={(e)=>{e.preventDefault(); shareKakao();}}>Kakao</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.line);}}>LINE</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.whatsapp);}}>WhatsApp</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.facebook);}}>Facebook</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.telegram);}}>Telegram</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.x);}}>X</a>
-                  <a className="px-3 py-2 rounded-xl border" href={SHARE.sms}>SMS</a>
-                  <a className="px-3 py-2 rounded-xl bg-black text-white" href="#" onClick={(e)=>{e.preventDefault(); shareNative();}}>Share</a>
-                  <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); copyLink();}}>{t.share}</a>
+            function submitNow() {
+                try {
+                    const hasAnyAnswer = answers.length > 0;
+                    if (picked == null && !hasAnyAnswer) return;
+                    onSubmit();
+                    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+                } catch (e) { onSubmit(); }
+            }
+            function next() { setQIdx(i => Math.min(total - 1, i + 1)); }
+            function prev() { setQIdx(i => Math.max(0, i - 1)); }
+            function onPress(handler) { return (ev) => { ev.preventDefault(); handler(); }; }
+
+            useEffect(() => {
+                function onKey(e) {
+                    if (e.key === "Enter") {
+                        if (!isLast && picked != null) next();
+                        else if (isLast && picked != null) submitNow();
+                    }
+                }
+                window.addEventListener("keydown", onKey);
+                return () => window.removeEventListener("keydown", onKey);
+            }, [isLast, picked]);
+
+            return (
+                <div>
+                    <div className="w-full">
+                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                            <span>Q{qIdx + 1}</span>
+                            <span>{pct}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-black/80" style={{ width: pct + "%" }} />
+                        </div>
+                    </div>
+
+                    <h2 className="text-xl md:text-2xl font-bold mt-6">{q.text[lang] || q.text.en}</h2>
+
+                    <div className="grid gap-3 mt-4">
+                        {q.options.map((opt, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                onClick={() => pick(opt.val)}
+                                onTouchEnd={() => pick(opt.val)}
+                                className={
+                                    "text-left border rounded-2xl p-4 transition " +
+                                    (picked === opt.val
+                                        ? "border-black bg-black text-white"
+                                        : "border-gray-200 hover:border-black")
+                                }
+                            >
+                                {opt.label[lang] || opt.label.en}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex justify-between mt-6">
+                        <button
+                            type="button"
+                            className="px-4 py-2 rounded-xl border border-gray-300"
+                            onClick={onPress(prev)}
+                            onTouchEnd={onPress(prev)}
+                            disabled={qIdx === 0}
+                        >
+                            {t.prev}
+                        </button>
+
+                        {!isLast ? (
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
+                                onClick={onPress(next)}
+                                onTouchEnd={onPress(next)}
+                                disabled={picked == null}
+                            >
+                                {t.next}
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
+                                onClick={onPress(submitNow)}
+                                onTouchEnd={onPress(submitNow)}
+                                disabled={picked == null && answers.length === 0}
+                            >
+                                {t.submit}
+                            </button>
+                        )}
+                    </div>
                 </div>
-              </div>
+            );
+        }
 
-              <div className="flex gap-2 mt-4">
-                <button className="px-4 py-2 rounded-xl border" onClick={onRestart}>{t.restart}</button>
-              </div>
-            </div>
-          </div>
+        /* ================= 결과 ================= */
+        function Result({ t, lang, axes, winner, onRestart }) {
+            // 최후의 안전장치: winner가 없다면 0번 선수로 폴백
+            const pickedAth = winner || ATHLETES[0];
+            const safeAth = pickedAth || { id:"unknown", name:"Unknown", img:[PH("Unknown")], traits:[], compliment:"" };
 
-          <div className="mt-8">
-            <h4 className="font-semibold mb-2">스타일 스파이더차트</h4>
-            <Radar axes={AXES} dataVals={AXES.map(ax => Math.max(0, Math.min(10, axes[ax.key]||0)))} />
+            // 공유 URL(언어 포함)
+            const payload = { axes, winner: safeAth.id, ts: Date.now() };
+            const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
+            const text = (STR[lang]?.title || STR.en.title) + " — " + (safeAth.name || "");
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-              {AXES.map(ax=>(
-                <div key={ax.key} className="flex justify-between border rounded-lg px-3 py-2">
-                  <span>{ax.label[lang] || ax.label.en}</span>
-                  <span className="font-medium">{Math.round(Math.max(0, Math.min(10, axes[ax.key]||0)))}</span>
+            const SHARE = {
+                line:      buildShareURL("line", text, url),
+                whatsapp:  buildShareURL("whatsapp", text, url),
+                facebook:  buildShareURL("facebook", text, url),
+                telegram:  buildShareURL("telegram", text, url),
+                x:         buildShareURL("x", text, url),
+                sms:       buildShareURL("sms", text, url),
+            };
+
+            function shareKakao() {
+                const key = "6293a9061e25a8cfabaecddf8b4b4d1e"; // 본인 키로 교체 + 도메인 등록 필요
+                try {
+                    if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(key);
+                    if (window.Kakao?.Share && key !== "YOUR_KAKAO_JAVASCRIPT_KEY") {
+                        window.Kakao.Share.sendDefault({
+                            objectType:'feed',
+                            content:{ title: STR[lang]?.title || STR.en.title, description: safeAth?.name || "",
+                                      imageUrl:"https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg",
+                                      link:{ mobileWebUrl:url, webUrl:url } },
+                            buttons:[{ title:'열어보기', link:{ mobileWebUrl:url, webUrl:url } }]
+                        });
+                        return;
+                    }
+                } catch(e){}
+                navigator.clipboard?.writeText(url);
+                alert(STR[lang]?.copied || STR.en.copied);
+            }
+
+            function shareNative() {
+                if (navigator.share) {
+                    navigator.share({ title: document.title, text: text, url }).catch(()=>{});
+                } else {
+                    navigator.clipboard?.writeText(url);
+                    alert(STR[lang]?.copied || STR.en.copied);
+                }
+            }
+            function copyLink() {
+                navigator.clipboard?.writeText(url);
+                alert(STR[lang]?.copied || STR.en.copied);
+            }
+
+            return (
+                <div>
+                    <h2 className="text-xl md:text-2xl font-extrabold">{t.yourResult}</h2>
+
+                    <div className="grid md:grid-cols-2 gap-6 items-center mt-4">
+                        <SmartImage srcs={safeAth.img} alt={safeAth.name} className="w-full rounded-2xl shadow-md object-cover" />
+                        <div>
+                            <h3 className="text-2xl font-bold">{safeAth.name}</h3>
+                            <ul className="mt-2 list-disc list-inside text-gray-700">
+                                {(safeAth.traits || []).map((tr,i)=>(<li key={i}>{tr}</li>))}
+                            </ul>
+                            {safeAth.compliment && <p className="mt-3 font-medium">{safeAth.compliment}</p>}
+                            <p className="mt-3 text-sm text-gray-500">당신의 점수는 {(winner?.sim*100)?.toFixed(1)}% 매칭됩니다.</p>
+
+                            <div className="mt-4">
+                                <Chart axes={axes} ath={safeAth} lang={lang} />
+                            </div>
+
+                            <div className="mt-4">
+                                <h4 className="font-bold text-gray-800">스타일 분석 코멘트</h4>
+                                <ul className="mt-2 text-sm text-gray-700 list-disc list-inside">
+                                    {buildAdvice(axes).map((advice, i)=><li key={i}>{advice}</li>)}
+                                </ul>
+                            </div>
+
+                            <div className="mt-4">
+                                <div className="text-sm text-gray-600 mb-2">{t.shareVia}</div>
+                                <div className="flex flex-wrap gap-2">
+                                    <a className="px-3 py-2 rounded-xl bg-[#FEE500] text-black" href="#" onClick={(e)=>{e.preventDefault(); shareKakao();}}>Kakao</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.line);}}>LINE</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.whatsapp);}}>WhatsApp</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.facebook);}}>Facebook</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.telegram);}}>Telegram</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); openShare(SHARE.x);}}>X</a>
+                                    <a className="px-3 py-2 rounded-xl border" href={SHARE.sms}>SMS</a>
+                                    <a className="px-3 py-2 rounded-xl bg-black text-white" href="#" onClick={(e)=>{e.preventDefault(); shareNative();}}>Share</a>
+                                    <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); copyLink();}}>{t.share}</a>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <button className="px-4 py-2 rounded-xl border" onClick={onRestart}>{t.restart}</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              ))}
-            </div>
+            );
+        }
 
-            <div className="mt-6">
-              <h4 className="font-semibold mb-2">추천 포인트</h4>
-              <ul className="list-disc list-inside text-gray-700">
-                {buildAdvice(axes).map((s,i)=>(<li key={i}>{s}</li>))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      );
-    }
+        function Chart({ axes, ath, lang }) {
+            const canvasRef = useRef(null);
+            const chartRef = useRef(null);
 
-    /* ================= 레이더 차트 ================= */
-    function Radar({ axes, dataVals }) {
-      const labels = axes.map(ax => ax.label[detectLang()] || ax.label.en);
-      const canvasRef = useRef(null);
-      const chartRef = useRef(null);
-      useEffect(()=>{
-        const ctx = canvasRef.current.getContext('2d');
-        if (chartRef.current) chartRef.current.destroy();
-        chartRef.current = new Chart(ctx, {
-          type:'radar',
-          data:{ labels, datasets:[{ label:'0–10', data:dataVals, fill:true, backgroundColor:'rgba(0,0,0,0.12)', borderColor:'rgba(0,0,0,0.85)', pointBackgroundColor:'rgba(0,0,0,0.85)' }]},
-          options:{ responsive:true, scales:{ r:{ suggestedMin:0, suggestedMax:10, ticks:{stepSize:2}, grid:{color:'rgba(0,0,0,0.08)'}, angleLines:{color:'rgba(0,0,0,0.08)'}, pointLabels:{color:'#111'} }}, plugins:{legend:{display:false}} }
-        });
-        return ()=>{ if(chartRef.current) chartRef.current.destroy(); };
-      }, [JSON.stringify(dataVals)]);
-      return <canvas ref={canvasRef} height="300"></canvas>;
-    }
+            useEffect(() => {
+                const ctx = canvasRef.current.getContext('2d');
+                const labels = AXES.map(ax => ax.label[lang] || ax.label.en);
+                const scores = AXES.map(ax => (axes[ax.key] || 0) * 10); // 0-100으로 스케일
+                const athScores = AXES.map(ax => (PROFILES[ath.id][ax.key] || 0) * 10);
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-  </script>
+                const data = {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '나의 스타일',
+                            data: scores,
+                            backgroundColor: 'rgba(54, 162, 235, 0.4)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            pointBackgroundColor: 'rgb(54, 162, 235)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(54, 162, 235)'
+                        },
+                        {
+                            label: `${ath.name} 스타일`,
+                            data: athScores,
+                            backgroundColor: 'rgba(255, 99, 132, 0.4)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            pointBackgroundColor: 'rgb(255, 99, 132)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(255, 99, 132)'
+                        }
+                    ]
+                };
+
+                const config = {
+                    type: 'radar',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        elements: {
+                            line: {
+                                borderWidth: 3
+                            }
+                        },
+                        scales: {
+                            r: {
+                                min: 0,
+                                max: 100,
+                                ticks: {
+                                    display: false,
+                                    stepSize: 25
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: 'rgb(51, 51, 51)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            }
+                        }
+                    },
+                };
+
+                if (chartRef.current) chartRef.current.destroy();
+                chartRef.current = new Chart(ctx, config);
+
+            }, [axes, ath.id, lang]);
+
+            return (
+                <div style={{ height: '300px', width: '100%' }}>
+                    <canvas ref={canvasRef}></canvas>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+    </script>
 </body>
 </html>
