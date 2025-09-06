@@ -108,7 +108,7 @@
       );
     }
 
-    /* ===== 최신 임팩트 선수 (일부 사진은 폴백 처리) ===== */
+    /* ===== 선수 라인업 ===== */
     const ATHLETES = [
       { id:"gordon",   name:"Gordon Ryan",       img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg", PH("Gordon Ryan")],
         traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
@@ -154,7 +154,7 @@
         traits:["버터플라이/엑스","스크램블","초크"], compliment:"타이밍 장인, 흐름 전환에 탁월." },
     ];
 
-    /* ===== 13축 선수 프로필 (finish 포함) ===== */
+    /* ===== 13축 프로필 ===== */
     const PROFILES = {
       gordon:  {control:9, pressure:7, mobility:6, scramble:5, leglock:10,berimbolo:1, lapel:0, fundamental:8, wrestling:6, backtake:8, fronthead:8, guardret:8, finish:9},
       kaynan:  {control:9, pressure:8, mobility:7, scramble:7, leglock:4, berimbolo:2, lapel:2, fundamental:9, wrestling:8, backtake:8, fronthead:8, guardret:8, finish:7},
@@ -180,7 +180,7 @@
       marcelo: {control:6, pressure:5, mobility:7, scramble:9, leglock:4, berimbolo:2, lapel:3, fundamental:8, wrestling:5, backtake:9, fronthead:7, guardret:7, finish:9},
     };
 
-    /* ===== 문항 구성 (finish 포함, 축당 복수 문항 → 평균) ===== */
+    /* ===== 문항 (finish 포함) ===== */
     const L = (ko,en)=>({ko,en});
     const Q = []; let qid = 0;
     function add(axis, text, opts) { Q.push({ id: ++qid, axis, text, options: opts }); }
@@ -235,7 +235,7 @@
     add("guardret", L("오픈가드 리텐션(리프레이밍/그란비)의 자신감은?", "Open-guard retention (reframing/granby)?"),
       [{label:L("높음","High"), val:10},{label:L("보통","Moderate"), val:6},{label:L("낮음","Low"), val:2}]);
 
-    // Finish orientation (요청 반영)
+    // Finish orientation
     add("finish", L("경기 운영 성향은?", "Match orientation?"),
       [
         { label: L("공격적 서브미션 추구", "Aggressive submission hunting"), val: 10 },
@@ -285,7 +285,6 @@
       return url;
     }
     function openShare(url) {
-      // 팝업 시도 → 실패(차단) 시 같은 URL로 탭 이동
       const w = window.open(url, "_blank", "noopener,noreferrer,width=600,height=700");
       if (!w) location.href = url;
     }
@@ -329,6 +328,7 @@
 
       function pick(val) {
         const q = QUESTIONS[qIdx];
+        if (!q) return; // 수비적 가드
         const next = answers.filter(a=>a.id!==q.id).concat({id:q.id, val});
         setAnswers(next);
       }
@@ -380,6 +380,8 @@
     function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
       const total = QUESTIONS.length;
       const q = QUESTIONS[qIdx];
+      if (!q) return null; // 수비적 가드
+
       const picked = answers.find(a=>a.id===q.id)?.val;
       const pct = Math.round(((qIdx+1)/total)*100);
 
@@ -405,9 +407,21 @@
           <div className="flex justify-between mt-6">
             <button className="px-4 py-2 rounded-xl border border-gray-300" onClick={()=>setQIdx(i=>Math.max(0,i-1))} disabled={qIdx===0}>{t.prev}</button>
             {qIdx < total-1 ? (
-              <button className="px-4 py-2 rounded-xl bg-black text-white" onClick={()=>setQIdx(i=>Math.min(total-1,i+1))} disabled={!picked}>{t.next}</button>
+              <button
+                className="px-4 py-2 rounded-xl bg-black text-white"
+                onClick={()=>setQIdx(i=>Math.min(total-1,i+1))}
+                disabled={picked == null}  <!-- 핵심 수정: !picked → picked == null -->
+              >
+                {t.next}
+              </button>
             ) : (
-              <button className="px-4 py-2 rounded-xl bg-black text-white" onClick={onSubmit} disabled={!picked}>{t.submit}</button>
+              <button
+                className="px-4 py-2 rounded-xl bg-black text-white"
+                onClick={()=>{ try { onSubmit(); } catch(e) { /* 안전 폴백 */ } }}
+                disabled={picked == null}  <!-- 핵심 수정: !picked → picked == null -->
+              >
+                {t.submit}
+              </button>
             )}
           </div>
         </div>
@@ -445,9 +459,8 @@
         sms:       buildShareURL("sms", text, url),
       };
 
-      // Kakao: 키가 없거나 도메인 미등록이면 자동 폴백(링크 복사)
       function shareKakao() {
-        const key = "YOUR_KAKAO_JAVASCRIPT_KEY"; // ← 본인 앱키로 교체 & 도메인 등록 필요
+        const key = "YOUR_KAKAO_JAVASCRIPT_KEY";
         try {
           if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(key);
           if (window.Kakao?.Share && key !== "YOUR_KAKAO_JAVASCRIPT_KEY") {
@@ -491,7 +504,6 @@
               </ul>
               <p className="mt-3 font-medium">{ATHLETES.find(a=>a.id===winner.id).compliment}</p>
 
-              {/* 공유 */}
               <div className="mt-4">
                 <div className="text-sm text-gray-600 mb-2">{t.shareVia}</div>
                 <div className="flex flex-wrap gap-2">
@@ -505,11 +517,10 @@
                   <a className="px-3 py-2 rounded-xl bg-black text-white" href="#" onClick={(e)=>{e.preventDefault(); shareNative();}}>Share</a>
                   <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); copyLink();}}>{t.share}</a>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">앱 내 브라우저에서는 일부 공유가 차단될 수 있어요. 새 창에서 열기 팝업을 시도하고, 안 되면 링크 복사로 폴백합니다.</p>
+                <p className="text-xs text-gray-500 mt-2">앱 내 브라우저에서는 일부 공유가 제한될 수 있어요. 팝업 실패 시 자동으로 링크 복사/새 탭 이동으로 폴백합니다.</p>
               </div>
 
               <div className="mt-4 text-sm text-gray-600">
-                {/* 유사도 Top3 & 신뢰도 */}
                 {(() => {
                   const arr = Object.keys(PROFILES).map(id=>({ id, sim: weightedCosine(axes, PROFILES[id]) }))
                                   .sort((a,b)=>b.sim-a.sim).slice(0,3);
@@ -530,7 +541,6 @@
             </div>
           </div>
 
-          {/* 차트 + 축별 숫자 + 추천 */}
           <div className="mt-8">
             <h4 className="font-semibold mb-2">스타일 스파이더차트</h4>
             <Radar axes={AXES} dataVals={AXES.map(ax => Math.max(0, Math.min(10, axes[ax.key]||0)))} />
