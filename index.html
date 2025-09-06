@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BJJ 스타일 테스트 (Global Share)</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="BJJ 스타일 테스트"/>
+  <meta property="og:description" content="내 주짓수 스타일은 누구와 닮았을까? 8문항으로 스파이더 차트까지!"/>
+  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg"/>
+  <meta property="og:type" content="website"/>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React + ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Kakao SDK (optional; requires your app key to enable Kakao Share) -->
+  <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+
+  <style>body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}</style>
+</head>
+<body class="bg-gray-50">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useMemo, useState, useEffect, useRef } = React;
+
+    // ---------- Locale detection ----------
+    const SUPPORTED = ["ko","en","ja","es","pt","fr","zh"];
+    const STR = {
+      ko: { title:"주짓수 플레이 스타일 테스트", subtitle:"8문항에 답하면 닮은 선수와 스파이더차트를 보여드려요.",
+            start:"시작하기", next:"다음", prev:"이전", submit:"결과 보기", restart:"다시 하기", share:"결과 공유",
+            yourResult:"당신과 닮은 스타일", hint:"힌트",
+            disclaimer:"* 이미지 저작권을 확인하세요. 상업적 사용 전 라이선스 확인 필수.",
+            shareVia:"공유하기" },
+      en: { title:"BJJ Play-Style Test", subtitle:"Answer 8 questions to see your match + spider chart.",
+            start:"Start", next:"Next", prev:"Back", submit:"See Result", restart:"Restart", share:"Share Result",
+            yourResult:"Your Matching Style", hint:"Hint",
+            disclaimer:"* Verify image copyright/license before commercial use.",
+            shareVia:"Share via" },
+      ja: { title:"BJJ スタイル診断", subtitle:"8問で似ている選手とレーダーチャートを表示。",
+            start:"開始", next:"次へ", prev:"戻る", submit:"結果を見る", restart:"やり直す", share:"結果を共有",
+            yourResult:"あなたに近いスタイル", hint:"ヒント",
+            disclaimer:"* 画像のライセンスをご確認ください。",
+            shareVia:"共有" },
+      es: { title:"Test de estilo BJJ", subtitle:"Responde 8 preguntas para ver tu estilo y radar.",
+            start:"Empezar", next:"Siguiente", prev:"Atrás", submit:"Ver resultado", restart:"Reiniciar", share:"Compartir",
+            yourResult:"Tu estilo coincidente", hint:"Pista",
+            disclaimer:"* Verifica los derechos de imagen antes de uso comercial.",
+            shareVia:"Compartir vía" },
+      pt: { title:"Teste de estilo de BJJ", subtitle:"Responda 8 perguntas e veja seu radar.",
+            start:"Começar", next:"Próximo", prev:"Voltar", submit:"Ver resultado", restart:"Recomeçar", share:"Compartilhar",
+            yourResult:"Seu estilo", hint:"Dica",
+            disclaimer:"* Verifique a licença das imagens antes de uso comercial.",
+            shareVia:"Compartilhar" },
+      fr: { title:"Test de style BJJ", subtitle:"8 questions pour voir votre style et radar.",
+            start:"Commencer", next:"Suivant", prev:"Retour", submit:"Voir le résultat", restart:"Recommencer", share:"Partager",
+            yourResult:"Style correspondant", hint:"Indice",
+            disclaimer:"* Vérifiez la licence des images avant un usage commercial.",
+            shareVia:"Partager" },
+      zh: { title:"巴西柔术风格测试", subtitle:"回答 8 个问题，查看匹配选手与雷达图。",
+            start:"开始", next:"下一步", prev:"返回", submit:"查看结果", restart:"重新开始", share:"分享结果",
+            yourResult:"与你相似的风格", hint:"提示",
+            disclaimer:"* 使用前请确认图片版权/许可。",
+            shareVia:"分享途径" },
+    };
+
+    function detectLang(){
+      const urlLang = new URLSearchParams(location.search).get("lang");
+      if (urlLang && SUPPORTED.includes(urlLang)) return urlLang;
+      const langs = navigator.languages || [navigator.language || "en"];
+      for (const l of langs) {
+        const code = (l||"").toLowerCase().split("-")[0];
+        if (SUPPORTED.includes(code)) return code;
+      }
+      // Fallback with timezone heuristics
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Seoul")) return "ko";
+      if (tz.includes("Tokyo")) return "ja";
+      if (tz.includes("Shanghai") || tz.includes("Hong") || tz.includes("Taipei")) return "zh";
+      if (tz.includes("Sao_Paulo")) return "pt";
+      return "en";
+    }
+
+    // ---------- Axis & Weights ----------
+    const AXES = [
+      { key: "control", label: {ko:"컨트롤", en:"Control", ja:"コントロール", es:"Control", pt:"Controle", fr:"Contrôle", zh:"控场"} },
+      { key: "pressure", label: {ko:"압박", en:"Pressure", ja:"プレッシャー", es:"Presión", pt:"Pressão", fr:"Pression", zh:"压迫"} },
+      { key: "scramble", label: {ko:"스크램블", en:"Scramble", ja:"スクランブル", es:"Scramble", pt:"Scramble", fr:"Scramble", zh:"缠斗"} },
+      { key: "leglock", label: {ko:"레그락", en:"Leglocks", ja:"レッグロック", es:"LLocks", pt:"Leglocks", fr:"Leglocks", zh:"腿锁"} },
+      { key: "berimbolo", label: {ko:"베림보로", en:"Berimbolo", ja:"ベリンボロ", es:"Berimbolo", pt:"Berimbolo", fr:"Berimbolo", zh:"贝林博罗"} },
+      { key: "fundamental", label: {ko:"기본기", en:"Fundamentals", ja:"基礎", es:"Fundamentos", pt:"Fundamentos", fr:"Fondamentaux", zh:"基本功"} },
+      { key: "wrestling", label: {ko:"레슬링/TD", en:"Wrestling/TD", ja:"レスリング/TD", es:"Wrestling/TD", pt:"Wrestling/TD", fr:"Wrestling/TD", zh:"摔跤/TD"} },
+      { key: "mental", label: {ko:"전략/멘탈", en:"Strategy/Mental", ja:"戦略/メンタル", es:"Estrategia/Mental", pt:"Estratégia/Mental", fr:"Stratégie/Mental", zh:"战略/心理"} },
+    ];
+    const WEIGHTS = { control:1.2, pressure:1.1, scramble:1.0, leglock:1.2, berimbolo:0.8, fundamental:1.0, wrestling:0.9, mental:1.0 };
+
+    // ---------- Athletes & Profiles ----------
+    const ATHLETES = [
+      { id:"roger", name:"Roger Gracie", image:"https://upload.wikimedia.org/wikipedia/commons/2/2f/Roger_Gracie_2014.jpg",
+        traits:["Positional dominance","Pressure passing","Classic finishes"], compliment:"Fundamentals and composure define your game." },
+      { id:"marcelo", name:"Marcelo Garcia", image:"https://upload.wikimedia.org/wikipedia/commons/7/72/Marcelo_Garcia_2009_ADCC.jpg",
+        traits:["Butterfly/X guard","Scramble timing","Choke specialist"], compliment:"Creative timing wizard—turns small openings into wins." },
+      { id:"gordon", name:"Gordon Ryan", image:"https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg",
+        traits:["Systems & sequences","Bodylock/knee-cut","Leglock mastery"], compliment:"Cold strategist—puts opponents into a system." },
+      { id:"mikey", name:"Mikey Musumeci", image:"https://upload.wikimedia.org/wikipedia/commons/8/83/Mikey_Musumeci_2019.jpg",
+        traits:["Fine details","Angle creation","Lightweight technician"], compliment:"Detail artisan—wins with precise angles." },
+      { id:"gabi", name:"Gabi Garcia", image:"https://upload.wikimedia.org/wikipedia/commons/5/58/Gabi_Garcia_2013.jpg",
+        traits:["Physical + technical balance","Top pressure","Mental toughness"], compliment:"Presence + technique to control the match." },
+      { id:"adam", name:"Adam Wardzinski", image:"https://upload.wikimedia.org/wikipedia/commons/8/87/Adam_Wardzinski_2019.jpg",
+        traits:["Butterfly core","Armdrag sweeps","Top transitions"], compliment:"Textbook butterfly—breaks balance relentlessly." },
+      { id:"cade", name:"Kade Ruotolo", image:"https://upload.wikimedia.org/wikipedia/commons/2/2d/Kade_Ruotolo_2022.jpg",
+        traits:["High tempo","Wrestle entries/Das","Dynamic transitions"], compliment:"Tempo machine—overwhelms with activity." },
+      { id:"miyao", name:"Paulo Miyao", image:"https://upload.wikimedia.org/wikipedia/commons/9/9a/Paulo_Miyao_2014.jpg",
+        traits:["Berimbolo system","DLR & spin-back","Back takes"], compliment:"Berimbolo master—opens space by rotation." },
+      { id:"meregali", name:"Nicholas Meregali", image:"https://upload.wikimedia.org/wikipedia/commons/0/0e/Nicholas_Meregali_2017.jpg",
+        traits:["Pressure top","Classic subs","Takedown threat"], compliment:"Strong top control and textbook technique." },
+      { id:"tye", name:"Tye Ruotolo", image:"https://upload.wikimedia.org/wikipedia/commons/8/8c/Tye_Ruotolo_2022.jpg",
+        traits:["Aggressive passing","Wrestle/scramble","Dynamic"], compliment:"Aggressive top entries and scrambles." },
+    ];
+    const PROFILES = {
+      roger:{control:10,pressure:9,scramble:3,leglock:2,berimbolo:0,fundamental:10,wrestling:6,mental:8},
+      marcelo:{control:6,pressure:5,scramble:9,leglock:3,berimbolo:2,fundamental:8,wrestling:5,mental:7},
+      gordon:{control:9,pressure:7,scramble:5,leglock:10,berimbolo:1,fundamental:8,wrestling:6,mental:10},
+      mikey:{control:7,pressure:4,scramble:6,leglock:7,berimbolo:6,fundamental:9,wrestling:3,mental:8},
+      gabi:{control:8,pressure:9,scramble:4,leglock:2,berimbolo:0,fundamental:7,wrestling:6,mental:7},
+      adam:{control:6,pressure:5,scramble:7,leglock:4,berimbolo:3,fundamental:7,wrestling:4,mental:7},
+      cade:{control:6,pressure:6,scramble:10,leglock:7,berimbolo:2,fundamental:6,wrestling:8,mental:7},
+      miyao:{control:6,pressure:3,scramble:7,leglock:3,berimbolo:10,fundamental:8,wrestling:3,mental:7},
+      meregali:{control:9,pressure:9,scramble:6,leglock:3,berimbolo:2,fundamental:9,wrestling:7,mental:8},
+      tye:{control:6,pressure:7,scramble:9,leglock:6,berimbolo:2,fundamental:7,wrestling:8,mental:7},
+    };
+
+    // ---------- Questions (MECE; one per axis; answers=10/6/2) ----------
+    const QUESTIONS = [
+      { id:1, axis:"control", text:{ko:"포지션 컨트롤 성향은?", en:"Positional control preference?"},
+        options:[{label:{ko:"타이트하게 고정",en:"Tight hold"}, val:10},
+                 {label:{ko:"고정·전환 균형",en:"Balanced"}, val:6},
+                 {label:{ko:"전환 위주",en:"Flow/transition"}, val:2}] },
+      { id:2, axis:"pressure", text:{ko:"압박 패싱 성향은?", en:"Pressure passing preference?"},
+        options:[{label:{ko:"프레셔/바디락 중심",en:"Pressure/bodylock"}, val:10},
+                 {label:{ko:"모빌리티 패스 병행",en:"Mix mobility passes"}, val:6},
+                 {label:{ko:"압박 낮고 공간 활용",en:"Low pressure, use space"}, val:2}] },
+      { id:3, axis:"scramble", text:{ko:"템포/스크램블 성향은?", en:"Tempo/scramble?"},
+        options:[{label:{ko:"상시 하이 템포",en:"High tempo"}, val:10},
+                 {label:{ko:"상황별 조절",en:"Situational"}, val:6},
+                 {label:{ko:"낮은 템포",en:"Low tempo"}, val:2}] },
+      { id:4, axis:"leglock", text:{ko:"레그락 활용도는?", en:"Leglock usage?"},
+        options:[{label:{ko:"시스템적으로 적극",en:"Systematic/high"}, val:10},
+                 {label:{ko:"기회가 있으면",en:"Opportunistic"}, val:6},
+                 {label:{ko:"거의 안 함",en:"Rarely"}, val:2}] },
+      { id:5, axis:"berimbolo", text:{ko:"베림보로 사용 빈도는?", en:"Berimbolo frequency?"},
+        options:[{label:{ko:"자주 사용",en:"Often"}, val:10},
+                 {label:{ko:"가끔",en:"Sometimes"}, val:6},
+                 {label:{ko:"거의 없음",en:"Rarely"}, val:2}] },
+      { id:6, axis:"fundamental", text:{ko:"정석(기본기) 지향도는?", en:"Fundamentals focus?"},
+        options:[{label:{ko:"정석 중심",en:"Classics-driven"}, val:10},
+                 {label:{ko:"혼합",en:"Mixed"}, val:6},
+                 {label:{ko:"최신/창의",en:"Modern/creative"}, val:2}] },
+      { id:7, axis:"wrestling", text:{ko:"레슬링/테이크다운 지향은?", en:"Wrestling/TD emphasis?"},
+        options:[{label:{ko:"TD 우선",en:"TD-first"}, val:10},
+                 {label:{ko:"상황별 병행",en:"Mix TD/guard pull"}, val:6},
+                 {label:{ko:"주로 가드풀",en:"Mostly guard pull"}, val:2}] },
+      { id:8, axis:"mental", text:{ko:"전략/멘탈(운영 방식)은?", en:"Strategy/mental style?"},
+        options:[{label:{ko:"사전 설계·플랜",en:"Pre-planned"}, val:10},
+                 {label:{ko:"적응적",en:"Adaptive"}, val:6},
+                 {label:{ko:"즉흥적",en:"Improvisational"}, val:2}] },
+    ];
+
+    function weightedCosine(a, b) {
+      let dot=0, na=0, nb=0;
+      for(const k of Object.keys(WEIGHTS)){
+        const w=WEIGHTS[k]||1, x=(a[k]||0)*w, y=(b[k]||0)*w;
+        dot+=x*y; na+=x*x; nb+=y*y;
+      }
+      return dot/ (Math.sqrt(na||1)*Math.sqrt(nb||1));
+    }
+
+    function SmartImage({ src, alt, className }){
+      const [idx, setIdx] = React.useState(0);
+      const sources = Array.isArray(src) ? src : [src, src?.replace('upload.wikimedia.org','wikimedia.org')];
+      const curr = sources[idx] || "";
+      return <img src={curr} alt={alt} referrerPolicy="no-referrer" className={className}
+                  onError={()=>{ if(idx < sources.length-1) setIdx(idx+1); }} />;
+    }
+
+    // ---------- Share helpers ----------
+    function buildShareURL(text, url, platform){
+      const t = encodeURIComponent(text);
+      const u = encodeURIComponent(url);
+      switch(platform){
+        case "whatsapp": return `https://api.whatsapp.com/send?text=${t}%20${u}`;
+        case "line": return `https://line.me/R/msg/text/?${t}%20${u}`;
+        case "facebook": return `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+        case "telegram": return `https://t.me/share/url?url=${u}&text=${t}`;
+        case "sms": return `sms:?&body=${t}%20${u}`; // iOS/Android handle schemes
+        case "messenger": return `fb-messenger://share/?link=${u}`; // best-effort; app required
+        default: return url;
+      }
+    }
+
+    function App(){
+      const [lang,setLang] = useState("en");
+      useEffect(()=>{ setLang(detectLang()); },[]);
+      const t = STR[lang] || STR.en;
+
+      const [step,setStep]=useState("intro");
+      const [qIdx,setQIdx]=useState(0);
+      const [answers,setAnswers]=useState([]);
+      const [shared,setShared]=useState(null);
+
+      useEffect(()=>{
+        const r = new URLSearchParams(location.search).get("r");
+        if(r){ try{ const j=JSON.parse(atob(r)); if(j?.axes){ setShared(j); setStep("result"); } } catch(e){} }
+      },[]);
+
+      const axes = useMemo(()=>{
+        const acc = Object.fromEntries(AXES.map(ax=>[ax.key,0]));
+        (shared?.axes ? Object.entries(shared.axes).forEach(([k,v])=>acc[k]=v)
+          : answers.forEach(a=>{ const q=QUESTIONS.find(x=>x.id===a.id); if(q) acc[q.axis]=a.val; }));
+        return acc;
+      },[answers, shared]);
+
+      const winner = useMemo(()=>{
+        let best=null, score=-1;
+        for(const at of ATHLETES){
+          const sim = weightedCosine(axes, PROFILES[at.id]);
+          if(sim>score){ score=sim; best=at; }
+        }
+        return { at:best, sim:score };
+      },[JSON.stringify(axes)]);
+
+      const labels = AXES.map(ax=>ax.label[lang] || ax.label.en);
+
+      function pick(val){
+        const q=QUESTIONS[qIdx];
+        const next = answers.filter(a=>a.id!==q.id).concat({id:q.id,val});
+        setAnswers(next);
+      }
+
+      function shareAll(){
+        const payload = { axes, winner: winner?.at?.id, ts: Date.now() };
+        const base = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
+        const text = t.title + " — " + (winner?.at?.name || "");
+        if(navigator.share){
+          navigator.share({ title:t.title, text, url:base }).catch(()=>{});
+        }
+        // Always copy as fallback
+        navigator.clipboard?.writeText(base);
+        alert("Link copied! Paste in any app. (Native share opened if supported)");
+      }
+
+      return (
+        <div className="min-h-screen w-full bg-gradient-to-b from-white to-gray-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="rounded-3xl shadow-xl bg-white p-6 md:p-10">
+              {step==="intro" && <Intro t={t} lang={lang} setLang={setLang} onStart={()=>setStep("quiz")}/>}
+              {step==="quiz" && <Quiz t={t} lang={lang} qIdx={qIdx} setQIdx={setQIdx} answers={answers} pick={pick} onSubmit={()=>setStep("result")} />}
+              {step==="result" && winner?.at && <Result t={t} lang={lang} axes={axes} labels={labels} winner={winner.at} onRestart={()=>{setStep("intro");setQIdx(0);setAnswers([]);setShared(null);}} />}
+
+              <p className="text-xs text-gray-400 mt-6">{t.disclaimer}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Intro({ t, lang, setLang, onStart }){
+      return (
+        <div className="text-center">
+          <h1 className="text-2xl md:text-4xl font-extrabold">{t.title}</h1>
+          <p className="text-gray-600 mt-2 md:mt-3">{t.subtitle}</p>
+
+          <div className="mt-4 flex justify-center gap-2">
+            <label className="text-sm text-gray-600">Language:</label>
+            <select className="border rounded-xl px-3 py-2" value={lang} onChange={(e)=>setLang(e.target.value)}>
+              {Object.keys(STR).map(k=> <option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
+
+          <button className="mt-6 md:mt-8 px-6 py-3 rounded-2xl bg-black text-white hover:opacity-90 transition" onClick={onStart}>
+            {t.start}
+          </button>
+        </div>
+      );
+    }
+
+    function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }){
+      const total = QUESTIONS.length;
+      const q = QUESTIONS[qIdx];
+      const picked = answers.find(a=>a.id===q.id)?.val;
+      return (
+        <div>
+          <div className="w-full">
+            <div className="flex justify-between text-sm text-gray-500 mb-1"><span>Q{qIdx+1}</span><span>{Math.round(((qIdx+1)/total)*100)}%</span></div>
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-black/80" style={{width: (Math.round(((qIdx+1)/total)*100))+'%'}}/></div>
+          </div>
+
+          <h2 className="text-xl md:text-2xl font-bold mt-6">{q.text[lang] || q.text.en}</h2>
+          <div className="grid gap-3 mt-4">
+            {q.options.map((opt,i)=>(
+              <button key={i} onClick={()=>pick(opt.val)} className={"text-left border rounded-2xl p-4 transition " + (picked===opt.val ? "border-black bg-black text-white" : "border-gray-200 hover:border-black")}>
+                {opt.label[lang] || opt.label.en}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-between mt-6">
+            <button className="px-4 py-2 rounded-xl border border-gray-300" onClick={()=>setQIdx(i=>Math.max(0,i-1))} disabled={qIdx===0}>{t.prev}</button>
+            {qIdx < total-1 ? (
+              <button className="px-4 py-2 rounded-xl bg-black text-white" onClick={()=>setQIdx(i=>Math.min(total-1,i+1))} disabled={!picked}>{t.next}</button>
+            ) : (
+              <button className="px-4 py-2 rounded-xl bg-black text-white" onClick={onSubmit} disabled={!picked}>{t.submit}</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function Result({ t, lang, axes, labels, winner, onRestart }){
+      const dataVals = AXES.map(ax=>Math.max(0, Math.min(10, axes[ax.key]||0)));
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+
+      useEffect(()=>{
+        const ctx = canvasRef.current.getContext('2d');
+        if(chartRef.current) chartRef.current.destroy();
+        chartRef.current = new Chart(ctx, {
+          type:'radar',
+          data:{ labels, datasets:[{ label:'0–10', data:dataVals, fill:true, backgroundColor:'rgba(0,0,0,0.15)', borderColor:'rgba(0,0,0,0.8)', pointBackgroundColor:'rgba(0,0,0,0.8)' }]},
+          options:{ responsive:true, scales:{ r:{ suggestedMin:0, suggestedMax:10, ticks:{stepSize:2}, grid:{color:'rgba(0,0,0,0.1)'}, angleLines:{color:'rgba(0,0,0,0.1)'}, pointLabels:{color:'#111'} }}, plugins:{legend:{display:false}} }
+        });
+        return ()=>{ if(chartRef.current) chartRef.current.destroy(); };
+      }, [JSON.stringify(axes), lang]);
+
+      // Build share links row
+      const payload = { axes, winner: winner?.id, ts: Date.now() };
+      const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
+      const txt = t.title + " — " + (winner?.name || "");
+
+      function openShare(platform){
+        const link = buildShareURL(txt, url, platform);
+        window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      // Kakao init placeholder (user should replace with their own app key)
+      useEffect(()=>{
+        try{
+          if(window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init("YOUR_KAKAO_JAVASCRIPT_KEY");
+        }catch(e){}
+      },[]);
+
+      return (
+        <div>
+          <h2 className="text-xl md:text-2xl font-extrabold">{t.yourResult}</h2>
+          <div className="mt-4 grid md:grid-cols-2 gap-6 items-center">
+            <SmartImage src={winner.image} alt={winner.name} className="w-full rounded-2xl shadow-md object-cover" />
+            <div>
+              <h3 className="text-2xl font-bold">{winner.name}</h3>
+              <ul className="mt-2 list-disc list-inside text-gray-700">
+                {ATHLETES.find(a=>a.id===winner.id).traits.map((tr,i)=>(<li key={i}>{tr}</li>))}
+              </ul>
+              <p className="mt-3 font-medium">{ATHLETES.find(a=>a.id===winner.id).compliment}</p>
+
+              <div className="mt-4">
+                <div className="text-sm text-gray-600 mb-2">{t.shareVia}</div>
+                <div className="flex flex-wrap gap-2">
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('whatsapp')}>WhatsApp</button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('line')}>LINE</button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('facebook')}>Facebook</button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('messenger')}>Messenger</button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('telegram')}>Telegram</button>
+                  <button className="px-3 py-2 rounded-xl border" onClick={()=>openShare('sms')}>SMS</button>
+                  <button className="px-3 py-2 rounded-xl bg-black text-white" onClick={()=>{ if(window.Kakao?.Share){ window.Kakao.Share.sendDefault({ objectType:'feed', content:{ title:t.title, description:winner?.name||'', imageUrl:'https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg', link:{ mobileWebUrl:url, webUrl:url } }, buttons:[{ title:t.submit, link:{ mobileWebUrl:url, webUrl:url } }] }); } else { navigator.clipboard?.writeText(url); alert('Kakao SDK 미초기화: 링크를 복사했습니다.'); } }}>Kakao</button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <button className="px-4 py-2 rounded-xl bg-black text-white" onClick={()=>{navigator.clipboard?.writeText(url); alert('Link copied');}}>{t.share}</button>
+                <button className="px-4 py-2 rounded-xl border" onClick={onRestart}>{t.restart}</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h4 className="font-semibold mb-2">Radar</h4>
+            <canvas ref={canvasRef} height="300"></canvas>
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
+              {AXES.map((ax,i)=>(
+                <div key={ax.key} className="flex justify-between border rounded-lg px-3 py-1">
+                  <span>{ax.label[lang] || ax.label.en}</span>
+                  <span className="font-medium">{Math.round(dataVals[i])}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
