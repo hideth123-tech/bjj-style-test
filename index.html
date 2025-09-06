@@ -32,7 +32,8 @@
 <body class="bg-gradient-to-b from-gray-50 to-white min-h-screen">
   <div id="root"></div>
 
-  <script type="text/babel">
+  <!-- ✅ 중요: data-presets="env,react" 추가 -->
+  <script type="text/babel" data-presets="env,react">
     const { useMemo, useState, useEffect, useRef } = React;
 
     /* ===== i18n ===== */
@@ -328,7 +329,7 @@
 
       function pick(val) {
         const q = QUESTIONS[qIdx];
-        if (!q) return; // 수비적 가드
+        if (!q) return;
         const next = answers.filter(a=>a.id!==q.id).concat({id:q.id, val});
         setAnswers(next);
       }
@@ -380,7 +381,7 @@
     function Quiz({ t, lang, qIdx, setQIdx, answers, pick, onSubmit }) {
       const total = QUESTIONS.length;
       const q = QUESTIONS[qIdx];
-      if (!q) return null; // 수비적 가드
+      if (!q) return null;
 
       const picked = answers.find(a=>a.id===q.id)?.val;
       const pct = Math.round(((qIdx+1)/total)*100);
@@ -410,15 +411,15 @@
               <button
                 className="px-4 py-2 rounded-xl bg-black text-white"
                 onClick={()=>setQIdx(i=>Math.min(total-1,i+1))}
-                disabled={picked == null}  <!-- 핵심 수정: !picked → picked == null -->
+                disabled={picked == null}
               >
                 {t.next}
               </button>
             ) : (
               <button
                 className="px-4 py-2 rounded-xl bg-black text-white"
-                onClick={()=>{ try { onSubmit(); } catch(e) { /* 안전 폴백 */ } }}
-                disabled={picked == null}  <!-- 핵심 수정: !picked → picked == null -->
+                onClick={()=>{ try { onSubmit(); } catch(e) {} }}
+                disabled={picked == null}
               >
                 {t.submit}
               </button>
@@ -445,7 +446,6 @@
         return ()=>{ if(chartRef.current) chartRef.current.destroy(); };
       }, [JSON.stringify(axes), lang]);
 
-      // 공유 URL(언어 포함)
       const payload = { axes, winner: winner?.id, ts: Date.now() };
       const url = location.origin + location.pathname + "?lang=" + lang + "&r=" + btoa(JSON.stringify(payload));
       const text = (STR[lang]?.title || STR.en.title) + " — " + (winner?.name || "");
@@ -517,22 +517,7 @@
                   <a className="px-3 py-2 rounded-xl bg-black text-white" href="#" onClick={(e)=>{e.preventDefault(); shareNative();}}>Share</a>
                   <a className="px-3 py-2 rounded-xl border" href="#" onClick={(e)=>{e.preventDefault(); copyLink();}}>{t.share}</a>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">앱 내 브라우저에서는 일부 공유가 제한될 수 있어요. 팝업 실패 시 자동으로 링크 복사/새 탭 이동으로 폴백합니다.</p>
-              </div>
-
-              <div className="mt-4 text-sm text-gray-600">
-                {(() => {
-                  const arr = Object.keys(PROFILES).map(id=>({ id, sim: weightedCosine(axes, PROFILES[id]) }))
-                                  .sort((a,b)=>b.sim-a.sim).slice(0,3);
-                  const gap = (arr[0]?.sim||0) - (arr[1]?.sim||0);
-                  const conf = gap>=0.08 ? "높음" : gap>=0.04 ? "중간" : "낮음";
-                  return (
-                    <>
-                      유사도 Top3: {arr.map((x,i)=>`${i+1}. ${ATHLETES.find(a=>a.id===x.id)?.name || x.id} (${Math.round(x.sim*100)}%)`).join(' · ')}<br/>
-                      판정 신뢰도: <span className="font-semibold">{conf}</span> (격차 {Math.round(gap*100)}%)
-                    </>
-                  );
-                })()}
+                <p className="text-xs text-gray-500 mt-2">앱 내 브라우저에서는 일부 공유가 제한될 수 있어요. 팝업 실패 시 링크 복사/새 탭으로 자동 폴백합니다.</p>
               </div>
 
               <div className="flex gap-2 mt-4">
