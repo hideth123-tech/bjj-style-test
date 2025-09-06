@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <!-- ✅ 인앱 확대/클로즈업 방지 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
   <title>BJJ 스타일 테스트</title>
 
   <meta property="og:title" content="BJJ 스타일 테스트"/>
@@ -13,19 +14,25 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <!-- 🔧 오타 수정: react-dom.development.js -->
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 
   <style>
+    /* ✅ 배경 잘림/텍스트 자동확대 방지 */
+    html, body { height: 100%; margin: 0; padding: 0; background: #ffffff; -webkit-text-size-adjust: 100%; }
     body { font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial }
+    /* ✅ 이미지/캔버스 과확대 방지 */
+    img, canvas { max-width: 100%; height: auto; object-fit: contain; }
     .glass { backdrop-filter: blur(8px); }
+    /* ✅ 안전영역(노치) */
+    .safe-area { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
   </style>
 </head>
-<body class="bg-gradient-to-b from-gray-50 to-white min-h-screen">
-  <div id="root"></div>
+<body class="bg-gradient-to-b from-gray-50 to-white">
+  <!-- ✅ 100svh로 인앱 브라우저 높이 오차 보정 -->
+  <div id="root" class="min-h-[100svh] safe-area"></div>
 
   <script type="text/babel" data-presets="env,react">
     const { useMemo, useState, useEffect, useRef } = React;
@@ -228,7 +235,7 @@
       [{label:L("우선","First","優先"), val:10},{label:L("상황별","Situational","状況に応じて"), val:5},{label:L("거의 없음","Rare","ほとんどない"), val:0}]);
 
     add("backtake", L("가드/패스 중 백 테이크 전환 빈도는?", "Back-take transitions from guard/passing?", "ガード/パス中のバックテイクへの移行頻度は？"),
-      [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("드뭄","Rare","めったにない"), val:0}]);
+      [{label:L("자주","Often","よくある"), val:10},{label:L("가끔","Sometimes","時々"), val:5},{label:L("드뭌","Rare","めったにない"), val:0}]);
 
     add("fronthead", L("프론트 헤드록 체인(길로틴/다스) 활용도는?", "Front-headlock chain (Guillotine/D'Arce)?", "フロントヘッドロックチェーン（ギロチン/ダース）の活用度は？"),
       [{label:L("높음","High","高い"), val:10},{label:L("보통","Moderate","普通"), val:5},{label:L("낮음","Low","低い"), val:0}]);
@@ -401,7 +408,6 @@
       }
       function next() { setQIdx(i => Math.min(total - 1, i + 1)); }
       function prev() { setQIdx(i => Math.max(0, i - 1)); }
-      function onPress(handler) { return (ev) => { ev.preventDefault(); handler(); }; }
 
       useEffect(() => {
         function onKey(e) {
@@ -450,9 +456,8 @@
           <div className="flex justify-between mt-6">
             <button
               type="button"
-              className="px-4 py-2 rounded-xl border border-gray-300"
-              onClick={onPress(prev)}
-              onTouchEnd={onPress(prev)}
+              className="px-4 py-2 rounded-xl border border-gray-300 disabled:opacity-40"
+              onClick={()=>setQIdx(i=>Math.max(0,i-1))}
               disabled={qIdx === 0}
             >
               {t.prev}
@@ -462,8 +467,7 @@
               <button
                 type="button"
                 className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
-                onClick={onPress(next)}
-                onTouchEnd={onPress(next)}
+                onClick={()=>setQIdx(i=>Math.min(total-1,i+1))}
                 disabled={picked == null}
               >
                 {t.next}
@@ -472,8 +476,7 @@
               <button
                 type="button"
                 className="px-4 py-2 rounded-xl bg-black text-white disabled:opacity-40"
-                onClick={onPress(submitNow)}
-                onTouchEnd={onPress(submitNow)}
+                onClick={submitNow}
                 disabled={picked == null && answers.length === 0}
               >
                 {t.submit}
@@ -539,7 +542,8 @@
           <h2 className="text-xl md:text-2xl font-extrabold">{t.yourResult}</h2>
 
           <div className="grid md:grid-cols-2 gap-6 items-center mt-4">
-            <SmartImage srcs={safeAth.img} alt={safeAth.name} className="w-full rounded-2xl shadow-md object-cover" />
+            <!-- ✅ 클로즈업 방지: object-contain + 최대 높이 제한 -->
+            <SmartImage srcs={safeAth.img} alt={safeAth.name} className="w-full max-h-[360px] rounded-2xl shadow-md object-contain" />
             <div>
               <h3 className="text-2xl font-bold">{safeAth.name}</h3>
               <ul className="mt-2 list-disc list-inside text-gray-700">
@@ -588,12 +592,12 @@
       const chartRef = useRef(null);
 
       useEffect(() => {
-        const ChartJS = window.Chart; // 전역 Chart.js 안전 참조
+        const ChartJS = window.Chart;
         if (!ChartJS || !canvasRef.current) return;
 
         const ctx = canvasRef.current.getContext('2d');
         const labels = AXES.map(ax => ax.label[lang] || ax.label.en);
-        const scores = AXES.map(ax => (axes[ax.key] || 0) * 10); // 0-100으로 스케일
+        const scores = AXES.map(ax => (axes[ax.key] || 0) * 10); // 0-100 스케일
         const athScores = AXES.map(ax => (PROFILES[ath.id][ax.key] || 0) * 10);
 
         const data = {
