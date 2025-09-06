@@ -128,19 +128,19 @@
 
     /* ================= 선수 라인업 ================= */
     const ATHLETES = [
-      { id:"gordon",   name:"Gordon Ryan",       img:["https://upload.wikimedia.org/wikipedia/commons/0/0e/Gordon_Ryan_2019.jpg", PH("Gordon Ryan")],
+      { id:"gordon",   name:"Gordon Ryan",       img:["https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg/640px-ADCC_King_Gordon_Ryan_Gritty_Path_To_Glory_-_YouTube_-_10_12_%28cropped%29.jpg", PH("Gordon Ryan")],
         traits:["시퀀스 체계","바디락/니컷","레그락"], compliment:"경기를 설계하고 통제하는 전략형." },
-      { id:"kaynan",   name:"Kaynan Duarte",     img:["https://upload.wikimedia.org/wikipedia/commons/8/8d/Kaynan_Duarte.jpg", PH("Kaynan Duarte")],
+      { id:"kaynan",   name:"Kaynan Duarte",     img:["https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg/640px-Kaynan_Duarte_ADCC_2019_%28cropped%29.jpg", PH("Kaynan Duarte")],
         traits:["더블골드(ADCC’24)","압박+모빌리티","길로틴/프론트체인"], compliment:"균형 잡힌 파워/기술로 국면을 지배." },
-      { id:"mica",     name:"Mica Galvão",       img:[null, PH("Mica Galvão")],
+      { id:"mica",     name:"Mica Galvão",       img:["https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg/640px-Vlog-6_FINALIZOU_EM_1_MINUTO%21%21%21_Veja_s%C3%B3%21_-_YouTube_-_13-49_%28cropped%29.jpg", PH("Mica Galvão")],
         traits:["하이 템포","피니시 성향","77kg 강자"], compliment:"템포로 흔들고 피니시로 마무리." },
-      { id:"diogo",    name:"Diogo Reis",        img:[null, PH("Diogo Reis")],
+      { id:"diogo",    name:"Diogo Reis",        img:["https://cdn.onefc.com/wp-content/uploads/2025/03/Diogo_Reis-Hero-1200x1165-1-768x746.jpg", PH("Diogo Reis")],
         traits:["-66kg 강자","모빌리티","백테이크"], compliment:"민첩한 전환과 날카로운 백 게임." },
-      { id:"bodoni",   name:"Giancarlo Bodoni",  img:[null, PH("Giancarlo Bodoni")],
+      { id:"bodoni",   name:"Giancarlo Bodoni",  img:["https://cdn.onefc.com/wp-content/uploads/2024/12/GiancarloBodoni-1200X800.jpg", PH("Giancarlo Bodoni")],
         traits:["-88kg 강자","체계적 패싱","컨트롤"], compliment:"정돈된 시퀀스로 안정적 우세를 쌓음." },
-      { id:"pena",     name:"Felipe Pena",       img:[null, PH("Felipe Pena")],
+      { id:"pena",     name:"Felipe Pena",       img:["https://images.tapology.com/letterbox_images/214308/default/Untitled17.jpg?1595596586", PH("Felipe Pena")],
         traits:["+99kg 강자","백 컨트롤","전략 운영"], compliment:"전통과 현대가 섞인 안정적 피니셔." },
-      { id:"nickyrod", name:"Nick Rodriguez",    img:[null, PH("Nick Rodriguez")],
+      { id:"nickyrod", name:"Nick Rodriguez",    img:["https://d2779tscntxxsw.cloudfront.net/61ea28ee992bb.png?width=1800", PH("Nick Rodriguez")],
         traits:["레슬/탑컨","스크램블","CJI 임팩트"], compliment:"레슬과 체력으로 상단에서 압박." },
       { id:"craig",    name:"Craig Jones",       img:[null, PH("Craig Jones")],
         traits:["레그락 시스템","K-가드","CJI 주역"], compliment:"합리적 레그 체인으로 기회를 창출." },
@@ -511,7 +511,7 @@
       };
 
       function shareKakao() {
-        const key = "YOUR_KAKAO_JAVASCRIPT_KEY"; // 본인 키로 교체 + 도메인 등록 필요
+        const key = "6293a9061e25a8cfabaecddf8b4b4d1e"; // 본인 키로 교체 + 도메인 등록 필요
         try {
           if (window.Kakao && !window.Kakao.isInitialized()) window.Kakao.init(key);
           if (window.Kakao?.Share && key !== "YOUR_KAKAO_JAVASCRIPT_KEY") {
